@@ -1,0 +1,16 @@
+.env
+.pytest_cache/
+__pycache__/
+*.py[cod]
+*.log
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+data/uploads/*
+data/vector_index/*
+data/logs/*
+!data/uploads/.gitkeep
+!data/vector_index/.gitkeep
+!data/logs/.gitkeep
