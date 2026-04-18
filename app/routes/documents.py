@@ -5,6 +5,7 @@ from app.models.schemas import (
     DocumentIndexResponse,
     DocumentUploadResponse,
     IndexedDocumentResponse,
+    ResetWorkspaceResponse,
     RetrievalMatchResponse,
     RetrievalSearchRequest,
     RetrievalSearchResponse,
@@ -78,6 +79,20 @@ async def upload_documents(
         )
 
     return DocumentUploadResponse(documents=documents)
+
+
+@router.post("/reset", response_model=ResetWorkspaceResponse)
+async def reset_documents(request: Request) -> ResetWorkspaceResponse:
+    container = request.app.state.container
+    result = container.reset_runtime_state()
+    logger.info("workspace_reset_completed", **result)
+    return ResetWorkspaceResponse(
+        status="reset",
+        detail="Document registry, vector index, and conversation state were cleared.",
+        documents_cleared=result["documents_cleared"],
+        sessions_cleared=result["sessions_cleared"],
+        uploaded_files_removed=result["uploaded_files_removed"],
+    )
 
 
 @router.post("/index", response_model=DocumentIndexResponse)

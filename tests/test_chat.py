@@ -1,7 +1,7 @@
 from app.services.chat import ChatService, ConversationStore
 from app.services.documents import DocumentRecord, DocumentRegistry
 from app.services.embeddings import HashEmbeddingProvider
-from app.services.generator import ExtractiveAnswerGenerator, FALLBACK_RESPONSE
+from app.services.generator import ExtractiveAnswerGenerator, FALLBACK_RESPONSE, HeuristicSummaryGenerator
 from app.services.retrieval import ChunkRetrievalService
 from app.services.vector_store import FaissVectorStore
 from app.services.vector_store import IndexNotReadyError
@@ -34,6 +34,7 @@ def test_fallback_behavior_when_context_is_insufficient(tmp_path) -> None:
 
     assert result.answer == FALLBACK_RESPONSE
     assert result.citations == []
+    assert result.retrieved_chunks == []
     assert result.confidence_score <= service.minimum_grounding_score
 
 
@@ -53,14 +54,17 @@ def test_chat_service_requires_index_before_query(tmp_path) -> None:
 
 def _build_chat_service(tmp_path, chunk_texts: list[str]) -> ChatService:
     registry_record = _build_document_record("doc-1", "doc.txt", chunk_texts)
+    registry = _single_record_registry(registry_record)
     retrieval_service = ChunkRetrievalService(
-        registry=_single_record_registry(registry_record),
+        registry=registry,
         embedding_provider=HashEmbeddingProvider(dimensions=32),
         vector_store=FaissVectorStore(tmp_path),
     )
     return ChatService(
+        document_registry=registry,
         retrieval_service=retrieval_service,
         answer_generator=ExtractiveAnswerGenerator(),
+        summary_generator=HeuristicSummaryGenerator(),
         conversation_store=ConversationStore(),
         default_top_k=5,
         minimum_grounding_score=0.2,

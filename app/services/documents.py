@@ -47,6 +47,11 @@ class DocumentRegistry:
     def list(self) -> list[DocumentRecord]:
         return list(self._documents.values())
 
+    def clear(self) -> int:
+        count = len(self._documents)
+        self._documents.clear()
+        return count
+
     def get_chunks(self, document_ids: list[str] | None = None) -> list[DocumentChunk]:
         allowed = set(document_ids) if document_ids is not None else None
         documents = self._documents.values()

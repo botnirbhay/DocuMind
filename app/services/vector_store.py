@@ -29,6 +29,9 @@ class VectorStore(Protocol):
     def is_ready(self) -> bool:
         """Return whether the vector index contains searchable entries."""
 
+    def reset(self) -> None:
+        """Clear any in-memory and persisted index state."""
+
 
 class IndexNotReadyError(Exception):
     pass
@@ -90,6 +93,15 @@ class FaissVectorStore:
 
     def is_ready(self) -> bool:
         return self._index is not None and self._index.ntotal > 0
+
+    def reset(self) -> None:
+        self._index = None
+        self._chunks = []
+        if self._index_path.exists():
+            self._index_path.unlink()
+        if self._metadata_path.exists():
+            self._metadata_path.unlink()
+        self._logger.info("vector_index_reset")
 
     def _persist(self) -> None:
         self._index_dir.mkdir(parents=True, exist_ok=True)

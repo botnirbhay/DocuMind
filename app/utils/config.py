@@ -15,9 +15,12 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
-    llm_provider: str = Field(default="extractive", alias="LLM_PROVIDER")
-    openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
-    openai_model: str = Field(default="gpt-4.1-mini", alias="OPENAI_MODEL")
+    llm_provider: str = Field(default="ollama", alias="LLM_PROVIDER")
+    ollama_base_url: str = Field(default="http://127.0.0.1:11434", alias="OLLAMA_BASE_URL")
+    ollama_model: str = Field(default="qwen2.5:7b-instruct", alias="OLLAMA_MODEL")
+    ollama_timeout_seconds: float = Field(default=60.0, alias="OLLAMA_TIMEOUT_SECONDS")
+    ollama_temperature: float = Field(default=0.0, alias="OLLAMA_TEMPERATURE")
+    ollama_keep_alive: str = Field(default="10m", alias="OLLAMA_KEEP_ALIVE")
 
     embedding_provider: str = Field(default="sentence-transformers", alias="EMBEDDING_PROVIDER")
     embedding_model: str = Field(
@@ -42,7 +45,7 @@ class Settings(BaseSettings):
     @field_validator("llm_provider")
     @classmethod
     def validate_llm_provider(cls, value: str) -> str:
-        allowed = {"extractive"}
+        allowed = {"extractive", "ollama"}
         if value not in allowed:
             raise ValueError(f"Unsupported LLM_PROVIDER '{value}'. Supported values: {sorted(allowed)}.")
         return value

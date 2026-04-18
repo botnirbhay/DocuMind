@@ -14,3 +14,13 @@ data/logs/*
 !data/uploads/.gitkeep
 !data/vector_index/.gitkeep
 !data/logs/.gitkeep
+startcommands
+logs
+backend.log
+web/node_modules/
+web/.next/
+web/coverage/
+web/.env.local
+run_backend.ps1
+run_frontend.ps1
+stop_documind.ps1

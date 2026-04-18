@@ -24,7 +24,7 @@ def test_api_client_raises_clean_error_message() -> None:
     try:
         client.search_documents(query="cats", top_k=3)
     except DocuMindApiError as exc:
-        assert str(exc) == "Vector index is not ready."
+        assert str(exc) == "Vector index is not ready. Backend URL: http://testserver"
     else:
         raise AssertionError("Expected DocuMindApiError")
     finally:

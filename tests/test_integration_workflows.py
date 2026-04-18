@@ -73,3 +73,32 @@ def test_weak_context_fallback_integration_flow(client) -> None:
     chat_payload = chat.json()
     assert chat_payload["answer"] == FALLBACK_RESPONSE
     assert chat_payload["citations"] == []
+    assert chat_payload["retrieved_chunks"] == []
+
+
+def test_reset_clears_documents_index_and_sessions(client) -> None:
+    upload = client.post(
+        "/api/v1/documents/upload",
+        files=[("files", ("reset.txt", b"Project Atlas launched on March 4, 2026.", "text/plain"))],
+    )
+    assert upload.status_code == 201
+
+    index = client.post("/api/v1/documents/index", json={})
+    assert index.status_code == 200
+
+    chat = client.post(
+        "/api/v1/chat/query",
+        json={"session_id": "reset-session", "user_query": "When did Project Atlas launch?", "top_k": 2},
+    )
+    assert chat.status_code == 200
+
+    reset = client.post("/api/v1/documents/reset")
+    assert reset.status_code == 200
+    reset_payload = reset.json()
+    assert reset_payload["status"] == "reset"
+    assert reset_payload["documents_cleared"] == 1
+    assert reset_payload["sessions_cleared"] >= 1
+
+    search = client.post("/api/v1/documents/search", json={"query": "Project Atlas", "top_k": 2})
+    assert search.status_code == 400
+    assert "Vector index" in search.json()["detail"]
