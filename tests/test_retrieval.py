@@ -59,6 +59,33 @@ def test_empty_index_behavior_raises_clear_error(tmp_path) -> None:
         raise AssertionError("Expected IndexNotReadyError")
 
 
+def test_hybrid_reranking_recovers_exact_keyword_match(tmp_path) -> None:
+    registry = DocumentRegistry()
+    registry.add(
+        _build_document_record(
+            "doc-1",
+            "guide.txt",
+            [
+                "This section describes general onboarding guidance.",
+                "The appeal review timeline is seven business days.",
+                "This section covers office etiquette and formatting.",
+            ],
+        )
+    )
+
+    service = ChunkRetrievalService(
+        registry=registry,
+        embedding_provider=ConstantEmbeddingProvider(),
+        vector_store=FaissVectorStore(tmp_path),
+    )
+
+    service.index_documents()
+    matches = service.retrieve("appeal review timeline", top_k=1)
+
+    assert matches[0].chunk.text == "The appeal review timeline is seven business days."
+    assert matches[0].score > 0
+
+
 def _build_document_record(document_id: str, filename: str, chunk_texts: list[str]) -> DocumentRecord:
     chunks = [
         DocumentChunk(
@@ -84,3 +111,8 @@ def _build_document_record(document_id: str, filename: str, chunk_texts: list[st
         status="ingested",
         stored_path=None,
     )
+
+
+class ConstantEmbeddingProvider:
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        return [[1.0, 0.0, 0.0, 0.0] for _ in texts]

@@ -9,28 +9,28 @@ import { Surface } from "@/components/ui/surface";
 const features = [
   {
     icon: FileUp,
-    title: "Polished ingestion",
-    body: "Upload PDF, DOCX, and TXT files with clean metadata and chunking strategies designed for retrieval."
+    title: "Document upload",
+    body: "Upload PDF, DOCX, and TXT files and prepare them for search and question answering."
   },
   {
     icon: Binary,
-    title: "Local vector indexing",
-    body: "Index document chunks against the existing FastAPI backend without introducing cloud-only assumptions."
+    title: "Fast indexing",
+    body: "Process your files into searchable chunks so answers stay tied to the uploaded material."
   },
   {
     icon: SearchCheck,
-    title: "Transparent retrieval",
-    body: "Inspect the retrieval layer directly so source quality is visible before the answer is generated."
+    title: "Source-backed search",
+    body: "Review the most relevant passages before or after you ask a question."
   },
   {
     icon: MessagesSquare,
     title: "Grounded chat",
-    body: "Answers stay tied to retrieved evidence, with confidence and fallback behavior surfaced clearly."
+    body: "Ask questions and get concise answers with citations and clear confidence signals."
   },
   {
     icon: Layers3,
-    title: "SaaS-grade presentation",
-    body: "A dark-first product experience with motion, depth, and responsive layout rather than an internal dashboard."
+    title: "Clear workspace",
+    body: "Keep documents, summaries, and evidence in one place without clutter."
   }
 ];
 
@@ -39,9 +39,9 @@ export function FeatureHighlights() {
     <section className="px-6 py-24 md:px-10 lg:px-14">
       <div className="mx-auto max-w-7xl">
         <SectionHeading
-          eyebrow="What stands out"
-          title="A product experience built around retrieval quality."
-          body="DocuMind is not just a chat box on top of files. The interface is designed to make ingestion, indexing, retrieval, and evidence-backed answers feel trustworthy and polished."
+          eyebrow="What you can do"
+          title="Everything you need to read, search, and ask."
+          body="DocuMind helps you upload files, review relevant passages, and ask grounded questions without losing track of the source."
         />
         <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {features.map((feature, index) => (

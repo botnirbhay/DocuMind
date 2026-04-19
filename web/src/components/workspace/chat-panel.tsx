@@ -55,8 +55,12 @@ export function ChatPanel({
   const onSubmit = async () => {
     const trimmed = prompt.trim();
     if (!trimmed) return;
-    await sendChatQuery(trimmed, topK);
     setPrompt("");
+    try {
+      await sendChatQuery(trimmed, topK);
+    } catch {
+      setPrompt(trimmed);
+    }
   };
 
   const latestAssistant = [...state.messages].reverse().find((message) => message.role === "assistant");

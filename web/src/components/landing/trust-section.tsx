@@ -11,18 +11,18 @@ import { cn } from "@/lib/utils";
 const items = [
   {
     icon: Shield,
-    title: "Grounded by default",
-    body: "The backend already supports citations, confidence, and fallback behavior. The frontend makes those signals visible."
+    title: "Citations stay visible",
+    body: "Open the supporting evidence directly from the answer instead of guessing where it came from."
   },
   {
     icon: Workflow,
-    title: "Built for demos and portfolios",
-    body: "Landing page polish and a live workspace sit side by side, making DocuMind feel complete in interviews."
+    title: "Designed for long documents",
+    body: "Upload multiple files, review the summary, and move into detailed questions without losing context."
   },
   {
     icon: Sparkles,
-    title: "Modern without being noisy",
-    body: "Motion, depth, and lighting are present, but they support clarity instead of fighting it."
+    title: "Clean and readable",
+    body: "The interface stays dark, quiet, and easy to scan so the document content remains the focus."
   }
 ];
 
@@ -33,19 +33,19 @@ export function TrustSection() {
         <Surface className="overflow-hidden rounded-[34px] p-8 md:p-10">
           <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-accent">Why it feels complete</p>
+              <p className="text-xs uppercase tracking-[0.24em] text-accent">Why people use it</p>
               <h2 className="mt-4 font-[var(--font-display)] text-4xl font-semibold tracking-tight text-white">
-                The design sells the product, but the workflow still does the work.
+                Built to keep answers useful and easy to verify.
               </h2>
               <p className="mt-5 max-w-xl text-lg leading-8 text-slate-300">
-                DocuMind ships as a coherent product narrative: a premium landing experience, a working AI workspace,
-                and a backend that already knows how to stay grounded.
+                DocuMind keeps your documents, answers, and supporting evidence together so you can move from upload to
+                verified answer without extra steps.
               </p>
               <Link
                 href="/workspace"
                 className={cn(buttonVariants({ size: "lg" }), "mt-8 inline-flex gap-2")}
               >
-                Launch the workspace
+                Open workspace
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

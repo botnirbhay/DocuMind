@@ -34,11 +34,11 @@ export function WorkspaceShell() {
         >
           <div>
             <Link href="/" className="text-sm text-slate-400 transition hover:text-white">
-              Back to landing
+              Back
             </Link>
             <h1 className="mt-2 font-[var(--font-display)] text-3xl font-semibold text-white">Document workspace</h1>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">
-              Upload files, build the index, and chat with concise answers backed by visible source evidence.
+              Upload files, review the summary, and ask questions with visible source evidence.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

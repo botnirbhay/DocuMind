@@ -36,8 +36,8 @@ export function LibraryPanel({
 
       {state.documents.length === 0 ? (
         <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.03] p-5 text-sm leading-7 text-slate-300">
-          Your uploaded documents will appear here. Clearing the workspace now also clears the backend index, stored
-          uploads, and session memory.
+          Your uploaded documents will appear here. Use this list to keep track of what is currently available in the
+          workspace.
         </div>
       ) : (
         <div className="space-y-3">
@@ -67,13 +67,13 @@ export function LibraryPanel({
         disabled={isResetting}
       >
         <Trash2 className={`h-4 w-4 ${isResetting ? "animate-pulse" : ""}`} />
-        {isResetting ? "Clearing workspace..." : "Clear all indexed documents"}
+        {isResetting ? "Clearing workspace..." : "Clear all documents"}
       </Button>
 
       <ConfirmDialog
         open={isConfirmOpen}
-        title="Remove all indexed documents?"
-        description="This clears every uploaded file from the current DocuMind workspace, resets the backend index, and removes saved chat memory for this session."
+        title="Remove all documents?"
+        description="This clears every uploaded file from the current workspace and resets the current chat session."
         confirmLabel="Clear workspace"
         isConfirming={isResetting}
         onClose={() => setIsConfirmOpen(false)}

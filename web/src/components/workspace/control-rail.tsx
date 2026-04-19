@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { FileUp, RefreshCcw, RotateCcw, Sparkles, Wand2 } from "lucide-react";
+import { CircleHelp, FileUp, RefreshCcw, RotateCcw, Sparkles, Wand2 } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,7 @@ export function ControlRail({
       <Surface className="rounded-[30px] p-5">
         <div className="mb-5 flex items-start justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-accent/80">Control rail</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-accent/80">Documents</p>
             <h2 className="mt-2 font-[var(--font-display)] text-xl font-semibold text-white">Bring documents in</h2>
           </div>
           <Sparkles className="h-5 w-5 text-accent" />
@@ -125,9 +125,18 @@ export function ControlRail({
             </div>
           </div>
 
-          <RangeControl label="Chunk size" value={chunkSize} min={200} max={1600} step={100} onChange={setChunkSize} />
+          <RangeControl
+            label="Chunk size"
+            helpText="Chunk size is how much text DocuMind keeps in one searchable piece. Larger chunks keep more context, smaller chunks are more precise."
+            value={chunkSize}
+            min={200}
+            max={1600}
+            step={100}
+            onChange={setChunkSize}
+          />
           <RangeControl
             label="Chunk overlap"
+            helpText="Chunk overlap repeats a small part of the previous chunk in the next one, which helps avoid losing meaning at chunk boundaries."
             value={chunkOverlap}
             min={0}
             max={400}
@@ -196,7 +205,7 @@ export function ControlRail({
       <ConfirmDialog
         open={isConfirmOpen}
         title="Clear workspace?"
-        description="This removes uploaded documents, clears the backend vector index, deletes stored uploads, and resets conversation memory for the current workspace."
+        description="This removes all uploaded documents and clears the current chat session."
         confirmLabel="Clear everything"
         isConfirming={isResetting}
         onClose={() => setIsConfirmOpen(false)}
@@ -208,6 +217,7 @@ export function ControlRail({
 
 function RangeControl({
   label,
+  helpText,
   value,
   min,
   max,
@@ -215,6 +225,7 @@ function RangeControl({
   onChange
 }: {
   label: string;
+  helpText: string;
   value: number;
   min: number;
   max: number;
@@ -224,7 +235,13 @@ function RangeControl({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between text-sm text-slate-300">
-        <span>{label}</span>
+        <div className="group relative flex items-center gap-2">
+          <span>{label}</span>
+          <CircleHelp className="h-3.5 w-3.5 text-slate-500" />
+          <div className="pointer-events-none absolute left-0 top-6 z-10 hidden w-64 rounded-2xl border border-white/[0.08] bg-[#111114] p-3 text-xs leading-6 text-slate-300 shadow-[0_18px_50px_rgba(0,0,0,0.35)] group-hover:block">
+            {helpText}
+          </div>
+        </div>
         <span className="text-slate-500">{value}</span>
       </div>
       <input

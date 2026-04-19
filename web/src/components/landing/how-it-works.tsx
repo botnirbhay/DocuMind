@@ -7,18 +7,18 @@ import { SectionHeading } from "@/components/ui/section-heading";
 const steps = [
   {
     label: "01",
-    title: "Bring in source documents",
-    body: "Upload one or more files and let the backend extract, normalize, and prepare them for retrieval."
+    title: "Upload your files",
+    body: "Add one or more documents and let DocuMind prepare them for search and question answering."
   },
   {
     label: "02",
-    title: "Build the vector index",
-    body: "Index every chunk locally through the existing FastAPI pipeline and keep multi-document retrieval ready."
+    title: "Prepare the workspace",
+    body: "DocuMind organizes the document text so the most relevant passages can be found quickly."
   },
   {
     label: "03",
-    title: "Search or ask a grounded question",
-    body: "Inspect raw chunk matches or jump straight into chat with citations, confidence, and source previews."
+    title: "Ask and verify",
+    body: "Search directly or ask a question in chat, then open the citations to verify the answer."
   }
 ];
 
@@ -28,8 +28,8 @@ export function HowItWorks() {
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <SectionHeading
           eyebrow="How it works"
-          title="A clean three-step flow from upload to grounded answer."
-          body="The workspace mirrors the real backend flow, so what looks elegant on screen still maps to the actual retrieval pipeline behind it."
+          title="A simple three-step flow from file upload to source-backed answer."
+          body="The workspace keeps the process straightforward: upload files, let them be prepared, then ask questions and inspect the supporting evidence."
         />
         <div className="space-y-4">
           {steps.map((step, index) => (
