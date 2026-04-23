@@ -2,6 +2,7 @@ from app.services.chat import ChatService, ConversationStore
 from app.services.documents import DocumentRecord, DocumentRegistry
 from app.services.embeddings import HashEmbeddingProvider
 from app.services.generator import ExtractiveAnswerGenerator, FALLBACK_RESPONSE, HeuristicSummaryGenerator
+from app.services.reranker import NoOpReranker
 from app.services.retrieval import ChunkRetrievalService
 from app.services.vector_store import FaissVectorStore
 from tests.test_retrieval import _build_document_record
@@ -39,6 +40,7 @@ def test_summary_falls_back_without_documents(tmp_path) -> None:
         registry=registry,
         embedding_provider=HashEmbeddingProvider(dimensions=32),
         vector_store=FaissVectorStore(tmp_path),
+        reranker=NoOpReranker(),
     )
     service = ChatService(
         document_registry=registry,
@@ -63,6 +65,7 @@ def _build_summary_service(tmp_path, filename: str, chunk_texts: list[str]) -> C
         registry=registry,
         embedding_provider=HashEmbeddingProvider(dimensions=32),
         vector_store=FaissVectorStore(tmp_path),
+        reranker=NoOpReranker(),
     )
     return ChatService(
         document_registry=registry,

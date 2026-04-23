@@ -2,6 +2,7 @@ from app.services.chat import ChatService, ConversationStore
 from app.services.documents import DocumentRecord, DocumentRegistry
 from app.services.embeddings import HashEmbeddingProvider
 from app.services.generator import ExtractiveAnswerGenerator, FALLBACK_RESPONSE, HeuristicSummaryGenerator
+from app.services.reranker import NoOpReranker
 from app.services.retrieval import ChunkRetrievalService
 from app.services.vector_store import FaissVectorStore
 from app.services.vector_store import IndexNotReadyError
@@ -59,6 +60,7 @@ def _build_chat_service(tmp_path, chunk_texts: list[str]) -> ChatService:
         registry=registry,
         embedding_provider=HashEmbeddingProvider(dimensions=32),
         vector_store=FaissVectorStore(tmp_path),
+        reranker=NoOpReranker(),
     )
     return ChatService(
         document_registry=registry,

@@ -36,14 +36,14 @@ const features = [
 
 export function FeatureHighlights() {
   return (
-    <section className="px-6 py-24 md:px-10 lg:px-14">
+    <section className="px-6 py-10 md:px-10 lg:px-14">
       <div className="mx-auto max-w-7xl">
         <SectionHeading
           eyebrow="What you can do"
           title="Everything you need to read, search, and ask."
           body="DocuMind helps you upload files, review relevant passages, and ask grounded questions without losing track of the source."
         />
-        <div className="mt-12 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
@@ -52,10 +52,10 @@ export function FeatureHighlights() {
               viewport={{ once: true, margin: "-10%" }}
               transition={{ delay: index * 0.06, duration: 0.5 }}
             >
-              <Surface className="h-full rounded-[24px] p-5">
+              <Surface className="h-full rounded-[24px] p-4">
                 <feature.icon className="h-5 w-5 text-accent" />
-                <h3 className="mt-5 font-[var(--font-display)] text-lg font-semibold text-white">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-slate-300">{feature.body}</p>
+                <h3 className="mt-4 font-[var(--font-display)] text-lg font-semibold text-white">{feature.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-300">{feature.body}</p>
               </Surface>
             </motion.div>
           ))}

@@ -6,6 +6,7 @@ from typing import Protocol
 
 from app.services.documents import DocumentChunk, DocumentRegistry
 from app.services.embeddings import EmbeddingProvider
+from app.services.reranker import Reranker
 from app.services.vector_store import IndexNotReadyError, VectorSearchMatch, VectorStore
 from app.utils.logging import get_logger
 
@@ -25,9 +26,11 @@ class ChunkRetrievalService:
     registry: DocumentRegistry
     embedding_provider: EmbeddingProvider
     vector_store: VectorStore
+    reranker: Reranker
     candidate_multiplier: int = 4
     vector_weight: float = 0.7
     lexical_weight: float = 0.3
+    reranker_candidate_limit: int = 12
 
     def __post_init__(self) -> None:
         self._logger = get_logger(component="retrieval")
@@ -59,12 +62,16 @@ class ChunkRetrievalService:
         query_vector = self.embedding_provider.embed([query])[0]
         dense_limit = max(top_k, top_k * self.candidate_multiplier)
         dense_matches = self.vector_store.search(query_vector, dense_limit)
-        matches = self._rerank_matches(query, dense_matches, top_k)
+        hybrid_matches = self._hybrid_rank_matches(query, dense_matches, top_k)
+        reranker_limit = max(top_k, min(len(hybrid_matches), self.reranker_candidate_limit))
+        reranker_candidates = hybrid_matches[:reranker_limit]
+        matches = self.reranker.rerank(query=query, matches=reranker_candidates, top_k=top_k)
         self._logger.info(
             "retrieval_completed",
             query=query,
             top_k=top_k,
             dense_candidates=len(dense_matches),
+            reranker_candidates=len(reranker_candidates),
             match_count=len(matches),
             top_score=round(matches[0].score, 4) if matches else None,
             vector_weight=self.vector_weight,
@@ -72,7 +79,7 @@ class ChunkRetrievalService:
         )
         return matches
 
-    def _rerank_matches(
+    def _hybrid_rank_matches(
         self,
         query: str,
         dense_matches: list[VectorSearchMatch],
@@ -109,7 +116,7 @@ class ChunkRetrievalService:
             ),
             reverse=True,
         )
-        return rescored[:top_k]
+        return rescored
 
 
 def _lexical_score(query: str, query_terms: set[str], chunk: DocumentChunk) -> float:

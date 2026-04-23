@@ -1,7 +1,8 @@
 from app.services.documents import DocumentChunk, DocumentRecord, DocumentRegistry, DocumentSection
 from app.services.embeddings import HashEmbeddingProvider
+from app.services.reranker import NoOpReranker
 from app.services.retrieval import ChunkRetrievalService
-from app.services.vector_store import FaissVectorStore, IndexNotReadyError
+from app.services.vector_store import FaissVectorStore, IndexNotReadyError, VectorSearchMatch
 
 
 def test_vector_index_creation_and_search(tmp_path) -> None:
@@ -17,6 +18,7 @@ def test_vector_index_creation_and_search(tmp_path) -> None:
         registry=registry,
         embedding_provider=HashEmbeddingProvider(dimensions=32),
         vector_store=FaissVectorStore(tmp_path),
+        reranker=NoOpReranker(),
     )
 
     indexed_chunks = service.index_documents()
@@ -37,6 +39,7 @@ def test_indexing_chunks_returns_all_selected_documents(tmp_path) -> None:
         registry=registry,
         embedding_provider=HashEmbeddingProvider(dimensions=32),
         vector_store=FaissVectorStore(tmp_path),
+        reranker=NoOpReranker(),
     )
 
     indexed_chunks = service.index_documents(["doc-2"])
@@ -49,6 +52,7 @@ def test_empty_index_behavior_raises_clear_error(tmp_path) -> None:
         registry=DocumentRegistry(),
         embedding_provider=HashEmbeddingProvider(dimensions=32),
         vector_store=FaissVectorStore(tmp_path),
+        reranker=NoOpReranker(),
     )
 
     try:
@@ -77,6 +81,7 @@ def test_hybrid_reranking_recovers_exact_keyword_match(tmp_path) -> None:
         registry=registry,
         embedding_provider=ConstantEmbeddingProvider(),
         vector_store=FaissVectorStore(tmp_path),
+        reranker=NoOpReranker(),
     )
 
     service.index_documents()
@@ -84,6 +89,23 @@ def test_hybrid_reranking_recovers_exact_keyword_match(tmp_path) -> None:
 
     assert matches[0].chunk.text == "The appeal review timeline is seven business days."
     assert matches[0].score > 0
+
+
+def test_retrieval_service_uses_second_stage_reranker(tmp_path) -> None:
+    registry = DocumentRegistry()
+    registry.add(_build_document_record("doc-1", "guide.txt", ["alpha clause", "beta clause"]))
+
+    service = ChunkRetrievalService(
+        registry=registry,
+        embedding_provider=ConstantEmbeddingProvider(),
+        vector_store=FaissVectorStore(tmp_path),
+        reranker=ReverseOrderReranker(),
+    )
+
+    service.index_documents()
+    matches = service.retrieve("alpha", top_k=1)
+
+    assert matches[0].chunk.text == "beta clause"
 
 
 def _build_document_record(document_id: str, filename: str, chunk_texts: list[str]) -> DocumentRecord:
@@ -116,3 +138,9 @@ def _build_document_record(document_id: str, filename: str, chunk_texts: list[st
 class ConstantEmbeddingProvider:
     def embed(self, texts: list[str]) -> list[list[float]]:
         return [[1.0, 0.0, 0.0, 0.0] for _ in texts]
+
+
+class ReverseOrderReranker:
+    def rerank(self, *, query: str, matches: list[VectorSearchMatch], top_k: int) -> list[VectorSearchMatch]:
+        del query
+        return list(reversed(matches))[:top_k]

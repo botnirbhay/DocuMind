@@ -24,8 +24,8 @@ const steps = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="px-6 py-24 md:px-10 lg:px-14">
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+    <section id="how-it-works" className="px-6 py-10 md:px-10 lg:px-14">
+      <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <SectionHeading
           eyebrow="How it works"
           title="A simple three-step flow from file upload to source-backed answer."
@@ -39,7 +39,7 @@ export function HowItWorks() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-12%" }}
               transition={{ delay: index * 0.08, duration: 0.55 }}
-              className="glass-panel rounded-[28px] p-6"
+              className="glass-panel rounded-[28px] p-5"
             >
               <div className="flex items-start gap-4">
                 <div className="rounded-2xl border border-accent/[0.20] bg-accent/[0.10] px-4 py-2 font-[var(--font-display)] text-sm text-accent">
@@ -47,7 +47,7 @@ export function HowItWorks() {
                 </div>
                 <div>
                   <h3 className="font-[var(--font-display)] text-xl font-semibold text-white">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-7 text-slate-300">{step.body}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">{step.body}</p>
                 </div>
               </div>
             </motion.div>

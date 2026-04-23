@@ -17,16 +17,16 @@ const highlights = [
 
 export function HeroSection() {
   return (
-    <section className="relative isolate px-6 pb-24 pt-8 md:px-10 lg:px-14">
-      <div className="mesh-orb left-[-8rem] top-8 h-72 w-72 bg-sky-400/20" />
-      <div className="mesh-orb right-[-10rem] top-12 h-80 w-80 bg-slate-500/20" />
+    <section className="relative isolate px-6 pb-14 pt-6 md:px-10 lg:px-14">
+      <div className="mesh-orb left-[-8rem] top-4 h-64 w-64 bg-sky-400/18" />
+      <div className="mesh-orb right-[-10rem] top-8 h-72 w-72 bg-slate-500/18" />
 
       <div className="mx-auto max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="mb-8 flex items-center justify-between"
+          className="mb-6 flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/[0.15] bg-white/[0.08] font-[var(--font-display)] text-lg font-semibold text-white">
@@ -45,7 +45,7 @@ export function HeroSection() {
           </Link>
         </motion.div>
 
-        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-8">
           <motion.div
             initial={{ opacity: 0, y: 28 }}
             animate={{ opacity: 1, y: 0 }}
@@ -55,14 +55,14 @@ export function HeroSection() {
             <div className="mb-5 inline-flex rounded-full border border-accent/[0.20] bg-accent/[0.10] px-4 py-2 text-xs uppercase tracking-[0.24em] text-accent">
               Answers grounded in your files
             </div>
-            <h1 className="max-w-3xl font-[var(--font-display)] text-5xl font-semibold leading-[1.02] tracking-tight text-white md:text-6xl lg:text-7xl">
+            <h1 className="max-w-3xl font-[var(--font-display)] text-4xl font-semibold leading-[1.02] tracking-tight text-white md:text-5xl lg:text-6xl">
               Upload documents, ask questions, and inspect the source behind every answer.
             </h1>
-            <p className="mt-6 max-w-2xl text-balance text-lg leading-8 text-slate-300 md:text-xl">
+            <p className="mt-4 max-w-2xl text-balance text-base leading-7 text-slate-300 md:text-lg">
               Use DocuMind to search, summarize, and chat across your files with citations, confidence, and clear
               supporting evidence.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/workspace"
                 className={cn(buttonVariants({ size: "lg" }), "w-full gap-2 sm:inline-flex sm:w-auto")}
@@ -80,7 +80,7 @@ export function HeroSection() {
                 See how it works
               </a>
             </div>
-            <div className="mt-10 grid gap-3 sm:grid-cols-2">
+            <div className="mt-7 grid gap-3 sm:grid-cols-2">
               {highlights.map((item) => (
                 <div
                   key={item.label}
@@ -99,7 +99,7 @@ export function HeroSection() {
             transition={{ delay: 0.18, duration: 0.7 }}
             className="relative"
           >
-            <Surface className="relative overflow-hidden p-5">
+            <Surface className="relative overflow-hidden p-4">
               <div className="absolute inset-0 bg-hero-grid bg-[size:22px_22px] opacity-20" />
               <div className="absolute -left-8 top-12 h-32 w-32 rounded-full bg-accent/[0.10] blur-3xl" />
               <div className="absolute -right-4 bottom-0 h-40 w-40 rounded-full bg-white/[0.05] blur-3xl" />

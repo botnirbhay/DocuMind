@@ -7,6 +7,7 @@ from app.services.documents import DocumentRegistry
 from app.services.embeddings import EmbeddingProvider, build_embedding_provider
 from app.services.generator import AnswerGenerator, SummaryGenerator, build_answer_generator, build_summary_generator
 from app.services.ingestion import LocalDocumentIngestionService
+from app.services.reranker import Reranker, build_reranker
 from app.services.retrieval import ChunkRetrievalService
 from app.services.vector_store import FaissVectorStore
 from app.utils.config import Settings
@@ -18,6 +19,7 @@ class AppState:
     document_registry: DocumentRegistry
     ingestion_service: LocalDocumentIngestionService
     embedding_provider: EmbeddingProvider
+    reranker: Reranker
     retrieval_service: ChunkRetrievalService
     vector_store: FaissVectorStore
     answer_generator: AnswerGenerator
@@ -30,8 +32,9 @@ class AppState:
         document_registry = DocumentRegistry()
         ingestion_service = LocalDocumentIngestionService(document_registry, settings.upload_dir)
         embedding_provider = build_embedding_provider(settings)
+        reranker = build_reranker(settings)
         vector_store = FaissVectorStore(settings.vector_index_dir)
-        retrieval_service = ChunkRetrievalService(document_registry, embedding_provider, vector_store)
+        retrieval_service = ChunkRetrievalService(document_registry, embedding_provider, vector_store, reranker)
         answer_generator = build_answer_generator(settings)
         summary_generator = build_summary_generator(settings)
         conversation_store = ConversationStore()
@@ -49,6 +52,7 @@ class AppState:
             document_registry=document_registry,
             ingestion_service=ingestion_service,
             embedding_provider=embedding_provider,
+            reranker=reranker,
             retrieval_service=retrieval_service,
             vector_store=vector_store,
             answer_generator=answer_generator,
@@ -66,6 +70,7 @@ class AppState:
         return [
             ServiceStatus(name="llm", configured=llm_configured, provider=llm_provider),
             ServiceStatus(name="embeddings", configured=True, provider=self.settings.embedding_provider),
+            ServiceStatus(name="reranker", configured=True, provider=self.settings.reranker_provider),
             ServiceStatus(name="vector_store", configured=True, provider=self.settings.vector_store_provider),
             ServiceStatus(name="document_registry", configured=True, provider="in-memory"),
             ServiceStatus(name="ingestion", configured=True, provider="local"),

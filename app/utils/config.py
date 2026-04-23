@@ -27,6 +27,11 @@ class Settings(BaseSettings):
         default="sentence-transformers/all-MiniLM-L6-v2",
         alias="EMBEDDING_MODEL",
     )
+    reranker_provider: str = Field(default="sentence-transformers", alias="RERANKER_PROVIDER")
+    reranker_model: str = Field(
+        default="cross-encoder/ms-marco-MiniLM-L-6-v2",
+        alias="RERANKER_MODEL",
+    )
     vector_store_provider: str = Field(default="faiss", alias="VECTOR_STORE_PROVIDER")
 
     data_dir: Path = Field(default=Path("./data"), alias="DATA_DIR")
@@ -56,6 +61,14 @@ class Settings(BaseSettings):
         allowed = {"sentence-transformers", "hash"}
         if value not in allowed:
             raise ValueError(f"Unsupported EMBEDDING_PROVIDER '{value}'. Supported values: {sorted(allowed)}.")
+        return value
+
+    @field_validator("reranker_provider")
+    @classmethod
+    def validate_reranker_provider(cls, value: str) -> str:
+        allowed = {"sentence-transformers", "none"}
+        if value not in allowed:
+            raise ValueError(f"Unsupported RERANKER_PROVIDER '{value}'. Supported values: {sorted(allowed)}.")
         return value
 
     @field_validator("vector_store_provider")

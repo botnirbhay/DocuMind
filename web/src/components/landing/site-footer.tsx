@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function SiteFooter() {
   return (
-    <footer className="px-6 pb-10 pt-8 md:px-10 lg:px-14">
+    <footer className="px-6 pb-8 pt-6 md:px-10 lg:px-14">
       <div className="mx-auto flex max-w-7xl flex-col gap-6 rounded-[28px] border border-white/10 bg-white/[0.03] px-6 py-6 text-sm text-slate-400 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="font-[var(--font-display)] text-lg text-white">DocuMind</p>
