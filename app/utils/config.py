@@ -27,7 +27,7 @@ class Settings(BaseSettings):
         default="sentence-transformers/all-MiniLM-L6-v2",
         alias="EMBEDDING_MODEL",
     )
-    reranker_provider: str = Field(default="sentence-transformers", alias="RERANKER_PROVIDER")
+    reranker_provider: str = Field(default="none", alias="RERANKER_PROVIDER")
     reranker_model: str = Field(
         default="cross-encoder/ms-marco-MiniLM-L-6-v2",
         alias="RERANKER_MODEL",

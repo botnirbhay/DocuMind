@@ -1,0 +1,88 @@
+DOCUMIND PRODUCT TEST PACK
+
+Section 1: Program Overview
+
+Project Atlas is an internal claims automation initiative for regional insurance teams.
+The current rollout phase began on March 4, 2026.
+Atlas is owned by the Operations Enablement group.
+The program sponsor is Mira Shah.
+The implementation lead is Daniel Reed.
+
+Section 2: Support and Availability
+
+Standard support hours are Monday through Friday, 9:00 AM to 6:00 PM IST.
+Critical incident support is available every day from 6:00 AM to 11:00 PM IST.
+Requests submitted outside standard support hours are queued for the next support window unless they are marked critical.
+
+Section 3: Review and Appeal Timelines
+
+Initial claim reviews are completed within 5 business days.
+Appeal reviews are completed within 7 business days.
+Escalated fraud-related appeals may take up to 12 business days.
+If required evidence is missing, the review clock pauses until the missing material is received.
+
+Section 4: Refund and Fee Rules
+
+Platform setup fees are non-refundable once account provisioning has started.
+Monthly subscription charges are refundable only if the customer reports a service-blocking issue within 10 calendar days of renewal.
+Approved refunds are processed within 5 business days after confirmation.
+Charge disputes must be submitted through the billing portal.
+
+Section 5: Eligibility Requirements
+
+Customers must maintain an active enterprise plan to use Atlas workflow automations.
+Each customer workspace must have at least one verified administrator.
+Single sign-on is recommended but not mandatory.
+Sandbox environments are available only for teams with more than 50 active users.
+
+Section 6: Upload and Document Handling
+
+The platform accepts PDF, DOCX, and TXT files.
+The maximum upload size is 25 MB per file.
+Scanned image-only PDFs are not guaranteed to produce reliable text extraction.
+Uploaded source files are retained for 30 days unless the workspace is cleared earlier.
+
+Section 7: Security and Retention
+
+Session memory should never be treated as a source of truth over the uploaded documents.
+Generated answers must rely only on retrieved document context.
+Evidence logs are retained for 14 days for evaluation and debugging.
+Uploaded files are removed immediately when a workspace reset is triggered by the user.
+
+Section 8: Named Teams and Contacts
+
+Billing issues are handled by the Revenue Operations team.
+Security review questions should be sent to the Trust Engineering team.
+Program communications are coordinated by Rina Patel.
+Release approvals require sign-off from Mira Shah and the platform compliance reviewer.
+
+Section 9: Product Limits
+
+Each workspace supports up to 200 uploaded documents at one time.
+Search requests return the top matching chunks rather than full documents.
+Confidence labels are shown as Strong grounding, Low confidence, or Insufficient context.
+
+Section 10: What Is Out of Scope
+
+Atlas does not provide legal advice.
+Atlas does not make hiring decisions.
+Atlas does not perform medical diagnosis.
+Atlas does not replace a formal fraud investigation process.
+
+Section 11: Example Workflow
+
+Step 1: Upload source documents.
+Step 2: Prepare the workspace for search.
+Step 3: Ask a grounded question.
+Step 4: Open the citations and verify the source text.
+
+Section 12: Short Reference List
+
+- Sponsor: Mira Shah
+- Implementation Lead: Daniel Reed
+- Communications: Rina Patel
+- Initial Review Timeline: 5 business days
+- Appeal Review Timeline: 7 business days
+- Refund Processing Timeline: 5 business days
+- Supported File Types: PDF, DOCX, TXT
+- Max Upload Size: 25 MB

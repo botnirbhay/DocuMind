@@ -4,7 +4,7 @@ import { resolveBackendBaseUrl } from "./backend";
 
 type ProxyOptions = {
   path: string;
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "DELETE";
   bodyType?: "json" | "formData";
 };
 

@@ -1,56 +1,30 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { CircleHelp, CornerDownLeft, Orbit, ScrollText, Sparkles, X } from "lucide-react";
+import { CircleHelp, CornerDownLeft, Orbit, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { LoadingSkeleton } from "@/components/ui/loading-skeleton";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { Surface } from "@/components/ui/surface";
 import type { WorkspaceActions, WorkspaceSnapshot } from "@/hooks/use-documind-workspace";
-import { getGroundingMeta } from "@/lib/grounding";
 import { buildSuggestedQuestions } from "@/lib/suggestions";
-import { CitationCard } from "./citation-card";
 import { MessageBubble } from "./message-bubble";
 
 export function ChatPanel({
   state,
   sendChatQuery,
-  generateSummary,
-  isChatting,
-  isSummarizing
-}: Pick<WorkspaceActions, "sendChatQuery" | "generateSummary" | "isChatting" | "isSummarizing"> & {
+  isChatting
+}: Pick<WorkspaceActions, "sendChatQuery" | "isChatting"> & {
   state: WorkspaceSnapshot;
 }) {
   const [prompt, setPrompt] = useState("");
   const [topK, setTopK] = useState(4);
-  const [isSummaryEvidenceOpen, setIsSummaryEvidenceOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const lastAutoSummaryKeyRef = useRef<string>("");
-
-  const autoSummaryKey = `${state.documents.map((document) => document.document_id).join("|")}::${state.indexedChunkCount}`;
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [isChatting, state.messages.length]);
-
-  useEffect(() => {
-    if (state.indexedChunkCount === 0) {
-      lastAutoSummaryKeyRef.current = "";
-      return;
-    }
-
-    if (
-      state.indexedChunkCount > 0 &&
-      !state.summary &&
-      !isSummarizing &&
-      lastAutoSummaryKeyRef.current !== autoSummaryKey
-    ) {
-      lastAutoSummaryKeyRef.current = autoSummaryKey;
-      void generateSummary();
-    }
-  }, [autoSummaryKey, generateSummary, isSummarizing, state.indexedChunkCount, state.summary]);
 
   const onSubmit = async () => {
     const trimmed = prompt.trim();
@@ -63,131 +37,14 @@ export function ChatPanel({
     }
   };
 
-  const latestAssistant = [...state.messages].reverse().find((message) => message.role === "assistant");
-  const grounding = latestAssistant ? getGroundingMeta(latestAssistant.confidenceScore, latestAssistant.answer) : null;
-  const summaryGrounding = state.summary
-    ? getGroundingMeta(state.summary.confidenceScore, state.summary.answer)
-    : null;
-  const suggestedQuestions = buildSuggestedQuestions(state.documents, state.summary);
+  const suggestedQuestions = buildSuggestedQuestions(state.documents, null);
   const isEmpty = state.messages.length === 0;
-  const hasSummaryEvidence = Boolean(state.summary && (state.summary.citations.length > 0 || state.summary.retrievedChunks.length > 0));
 
   return (
     <Surface className="relative overflow-hidden rounded-[34px] p-5 md:p-6">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(103,212,255,0.08),transparent_34%)]" />
 
-      <div className="relative mb-5 flex flex-col gap-4 border-b border-white/[0.08] pb-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Grounded chat</p>
-          <h2 className="mt-2 font-[var(--font-display)] text-2xl font-semibold text-slate-100">Ask your document set</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">
-            Answers stay tied to retrieved context. Citations and supporting chunks stay attached to each response.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <StatusBadge
-            label={state.documents.length > 0 ? "Documents loaded" : "No documents"}
-            tone={state.documents.length > 0 ? "success" : "warning"}
-          />
-          <StatusBadge
-            label={state.indexedChunkCount > 0 ? "Ready to answer" : "Preparing documents"}
-            tone={state.indexedChunkCount > 0 ? "success" : "warning"}
-          />
-          {grounding ? <StatusBadge label={grounding.label} tone={grounding.tone} /> : null}
-        </div>
-      </div>
-
       <div className="relative flex min-h-[620px] flex-col gap-5">
-        {state.indexedChunkCount > 0 ? (
-          <div className="rounded-[28px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] p-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Workspace summary</p>
-                <h3 className="mt-2 font-[var(--font-display)] text-xl font-semibold text-slate-100">
-                  High-level overview of the indexed document set
-                </h3>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-300">
-                  Useful for large uploads before you start asking detailed questions.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {isSummarizing ? <StatusBadge label="Generating summary" tone="default" /> : null}
-                {summaryGrounding ? <StatusBadge label={summaryGrounding.label} tone={summaryGrounding.tone} /> : null}
-              </div>
-            </div>
-
-            {isSummarizing && !state.summary ? (
-              <div className="mt-4 space-y-3">
-                <LoadingSkeleton className="h-24 w-full rounded-[22px]" />
-                <LoadingSkeleton className="h-16 w-4/5 rounded-[22px]" />
-              </div>
-            ) : state.summary ? (
-              <div className="mt-4 space-y-4">
-                <div className="rounded-[24px] border border-white/[0.08] bg-[#101013] p-5">
-                  <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-accent">
-                    <ScrollText className="h-3.5 w-3.5" />
-                    Summary
-                  </div>
-                  <p className="text-sm leading-8 text-slate-100">{state.summary.answer}</p>
-                </div>
-
-                {hasSummaryEvidence ? (
-                  <div className="rounded-[22px] border border-white/[0.08] bg-white/[0.03] p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-medium text-white">Summary evidence</span>
-                      {isSummaryEvidenceOpen ? (
-                        <Button variant="ghost" size="sm" className="gap-2" onClick={() => setIsSummaryEvidenceOpen(false)}>
-                          <X className="h-4 w-4" />
-                          Close
-                        </Button>
-                      ) : (
-                        <Button variant="ghost" size="sm" onClick={() => setIsSummaryEvidenceOpen(true)}>
-                          Show
-                        </Button>
-                      )}
-                    </div>
-
-                    {isSummaryEvidenceOpen ? (
-                      <div className="mt-4 space-y-4">
-                        {state.summary.citations.length > 0 ? (
-                          <div>
-                            <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Citations</p>
-                            <div className="mt-3 space-y-3">
-                              {state.summary.citations.map((citation) => (
-                                <CitationCard key={citation.chunk_id} citation={citation} />
-                              ))}
-                            </div>
-                          </div>
-                        ) : null}
-                        {state.summary.retrievedChunks.length > 0 ? (
-                          <div className={state.summary.citations.length > 0 ? "border-t border-white/[0.08] pt-4" : ""}>
-                            <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Supporting chunks</p>
-                            <div className="mt-3 space-y-3">
-                              {state.summary.retrievedChunks.slice(0, 3).map((chunk) => (
-                                <div
-                                  key={chunk.chunk_id}
-                                  className="rounded-[20px] border border-white/[0.08] bg-[#101013] p-4"
-                                >
-                                  <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-500">
-                                    <span>{chunk.filename}</span>
-                                    <span>{`chunk ${chunk.chunk_index}`}</span>
-                                    {chunk.page_number !== null ? <span>{`page ${chunk.page_number}`}</span> : null}
-                                  </div>
-                                  <p className="mt-3 text-sm leading-7 text-slate-200">{chunk.preview || chunk.text}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           {isEmpty ? (
             <motion.div
@@ -221,7 +78,7 @@ export function ChatPanel({
                   </div>
                 ) : (
                   <div className="mt-6 rounded-[22px] border border-dashed border-white/[0.08] bg-white/[0.02] px-4 py-4 text-sm text-slate-400">
-                    DocuMind is generating document-aware question suggestions from your uploaded files.
+                    Ask about dates, requirements, named entities, or specific sections that appear in your documents.
                   </div>
                 )}
               </div>

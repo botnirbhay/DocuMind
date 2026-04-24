@@ -5,6 +5,7 @@ from app.models.schemas import (
     DocumentIndexResponse,
     DocumentUploadResponse,
     IndexedDocumentResponse,
+    RemoveDocumentResponse,
     ResetWorkspaceResponse,
     RetrievalMatchResponse,
     RetrievalSearchRequest,
@@ -44,6 +45,7 @@ async def upload_documents(
     logger.info(
         "upload_request_received",
         file_count=len(files),
+        filenames=[upload.filename for upload in files if upload.filename],
         chunking_strategy=str(chunking_strategy),
         chunk_size=resolved_chunk_size,
         chunk_overlap=resolved_chunk_overlap,
@@ -92,6 +94,25 @@ async def reset_documents(request: Request) -> ResetWorkspaceResponse:
         documents_cleared=result["documents_cleared"],
         sessions_cleared=result["sessions_cleared"],
         uploaded_files_removed=result["uploaded_files_removed"],
+    )
+
+
+@router.delete("/{document_id}", response_model=RemoveDocumentResponse)
+async def remove_document(request: Request, document_id: str) -> RemoveDocumentResponse:
+    container = request.app.state.container
+    try:
+        result = container.remove_document(document_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+    logger.info("document_removed", **result)
+    return RemoveDocumentResponse(
+        status="removed",
+        detail="Document removed and retrieval index refreshed.",
+        document_id=document_id,
+        documents_remaining=int(result["documents_remaining"]),
+        total_chunks_indexed=int(result["total_chunks_indexed"]),
+        sessions_cleared=int(result["sessions_cleared"]),
     )
 
 

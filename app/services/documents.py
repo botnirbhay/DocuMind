@@ -44,6 +44,9 @@ class DocumentRegistry:
     def get(self, document_id: str) -> DocumentRecord | None:
         return self._documents.get(document_id)
 
+    def remove(self, document_id: str) -> DocumentRecord | None:
+        return self._documents.pop(document_id, None)
+
     def list(self) -> list[DocumentRecord]:
         return list(self._documents.values())
 

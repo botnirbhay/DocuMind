@@ -88,6 +88,29 @@ class AppState:
             "uploaded_files_removed": upload_file_count,
         }
 
+    def remove_document(self, document_id: str) -> dict[str, int | str]:
+        document = self.document_registry.remove(document_id)
+        if document is None:
+            raise ValueError(f"Document '{document_id}' was not found.")
+
+        conversation_count = self.conversation_store.clear()
+        removed_file = _remove_file(document.stored_path)
+
+        remaining_documents = self.document_registry.list()
+        if remaining_documents:
+            indexed_chunks = len(self.retrieval_service.index_documents())
+        else:
+            self.vector_store.reset()
+            indexed_chunks = 0
+
+        return {
+            "document_id": document_id,
+            "documents_remaining": len(remaining_documents),
+            "total_chunks_indexed": indexed_chunks,
+            "sessions_cleared": conversation_count,
+            "uploaded_files_removed": removed_file,
+        }
+
 
 def _clear_directory(directory: Path) -> int:
     if not directory.exists():
@@ -98,3 +121,14 @@ def _clear_directory(directory: Path) -> int:
             path.unlink()
             removed += 1
     return removed
+
+
+def _remove_file(path_value: str | None) -> int:
+    if not path_value:
+        return 0
+
+    path = Path(path_value)
+    if path.exists() and path.is_file():
+        path.unlink()
+        return 1
+    return 0

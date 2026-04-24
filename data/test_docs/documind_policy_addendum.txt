@@ -1,0 +1,50 @@
+DOCUMIND POLICY ADDENDUM
+
+Section 1: Secondary Program Overview
+
+Project Beacon is a partner onboarding initiative for enterprise channels.
+The Beacon rollout began on April 18, 2026.
+Beacon is sponsored by Arjun Mehta.
+Implementation updates for Beacon are coordinated by Leena Joseph.
+
+Section 2: Maintenance and Change Windows
+
+Scheduled maintenance takes place every Saturday from 11:00 PM to 1:00 AM IST.
+Emergency patches may be applied outside the maintenance window if a security issue is rated critical.
+Customers are notified at least 24 hours in advance for planned maintenance work.
+
+Section 3: Export and Retention Rules
+
+Generated exports remain available for download for 7 days.
+Audit export bundles are retained for 30 days.
+Deleted exports cannot be recovered after the retention period expires.
+
+Section 4: Regional Rollout Notes
+
+Beacon pilot access is currently enabled for India, Singapore, and the UAE.
+European rollout is planned for June 2026.
+North America onboarding is dependent on regional compliance review.
+
+Section 5: Access and Approval Rules
+
+Only verified administrators can trigger workspace resets.
+Bulk export requests require approval from the Compliance Operations team.
+High-risk access changes require sign-off from Arjun Mehta and the regional compliance reviewer.
+
+Section 6: Support Exceptions
+
+Billing disputes for Beacon still go through Revenue Operations.
+Security incidents for Beacon are routed to the Trust Engineering team.
+Non-critical configuration questions are answered during standard support hours only.
+
+Section 7: Reference List
+
+- Program: Project Beacon
+- Sponsor: Arjun Mehta
+- Coordination Lead: Leena Joseph
+- Maintenance Window: Saturday, 11:00 PM to 1:00 AM IST
+- Export Download Retention: 7 days
+- Audit Bundle Retention: 30 days
+
+
+codex resume 019d9f92-680f-71b2-804c-928d712eac25

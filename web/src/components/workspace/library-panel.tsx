@@ -1,6 +1,6 @@
 "use client";
 
-import { FileStack, Trash2 } from "lucide-react";
+import { FileStack, Trash2, X } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,15 @@ import type { WorkspaceSnapshot } from "@/hooks/use-documind-workspace";
 export function LibraryPanel({
   state,
   onClearWorkspace,
-  isResetting
+  onRemoveDocument,
+  isResetting,
+  isRemovingDocument
 }: {
   state: WorkspaceSnapshot;
   onClearWorkspace: () => void | Promise<void>;
+  onRemoveDocument: (documentId: string) => void | Promise<void>;
   isResetting: boolean;
+  isRemovingDocument: boolean;
 }) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
@@ -27,17 +31,13 @@ export function LibraryPanel({
   return (
     <Surface className="rounded-[30px] p-5">
       <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Source library</p>
-          <h3 className="mt-2 font-[var(--font-display)] text-xl font-semibold text-slate-100">Uploaded documents</h3>
-        </div>
+        <h3 className="font-[var(--font-display)] text-xl font-semibold text-slate-100">Documents</h3>
         <FileStack className="h-5 w-5 text-accent" />
       </div>
 
       {state.documents.length === 0 ? (
         <div className="rounded-[24px] border border-white/[0.08] bg-white/[0.03] p-5 text-sm leading-7 text-slate-300">
-          Your uploaded documents will appear here. Use this list to keep track of what is currently available in the
-          workspace.
+          Your uploaded documents will appear here.
         </div>
       ) : (
         <div className="space-y-3">
@@ -47,14 +47,19 @@ export function LibraryPanel({
                 <div>
                   <p className="font-medium text-slate-100">{document.filename}</p>
                   <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">
-                    {`${document.file_type.toUpperCase()} • ${document.chunks_extracted} chunks`}
+                    {`${document.file_type.toUpperCase()} | ${document.chunks_extracted} chunks`}
                   </p>
                 </div>
-                <span className="rounded-full border border-white/[0.08] bg-white/[0.05] px-3 py-1 text-xs text-slate-300">
-                  {document.status}
-                </span>
+                <button
+                  type="button"
+                  onClick={() => void onRemoveDocument(document.document_id)}
+                  disabled={isRemovingDocument || isResetting}
+                  className="rounded-full border border-white/[0.08] bg-white/[0.03] p-2 text-slate-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={`Remove ${document.filename}`}
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <p className="mt-3 text-xs text-slate-500">{document.document_id}</p>
             </div>
           ))}
         </div>
@@ -64,9 +69,9 @@ export function LibraryPanel({
         variant="ghost"
         className="mt-4 w-full gap-2 text-slate-300 hover:text-white"
         onClick={() => setIsConfirmOpen(true)}
-        disabled={isResetting}
+        disabled={isResetting || state.documents.length === 0}
       >
-        <Trash2 className={`h-4 w-4 ${isResetting ? "animate-pulse" : ""}`} />
+        <Trash2 className={`h-4 w-4 ${(isResetting || isRemovingDocument) ? "animate-pulse" : ""}`} />
         {isResetting ? "Clearing workspace..." : "Clear all documents"}
       </Button>
 

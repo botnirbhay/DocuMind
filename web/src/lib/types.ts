@@ -30,6 +30,15 @@ export type ResetWorkspaceResponse = {
   uploaded_files_removed: number;
 };
 
+export type RemoveDocumentResponse = {
+  status: string;
+  detail: string;
+  document_id: string;
+  documents_remaining: number;
+  total_chunks_indexed: number;
+  sessions_cleared: number;
+};
+
 export type RetrievalMatchResponse = {
   chunk_id: string;
   chunk_index: number;

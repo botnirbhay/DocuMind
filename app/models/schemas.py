@@ -33,6 +33,15 @@ class ResetWorkspaceResponse(BaseModel):
     uploaded_files_removed: int
 
 
+class RemoveDocumentResponse(BaseModel):
+    status: str
+    detail: str
+    document_id: str
+    documents_remaining: int
+    total_chunks_indexed: int
+    sessions_cleared: int
+
+
 class UploadedDocumentResponse(BaseModel):
     document_id: str
     filename: str

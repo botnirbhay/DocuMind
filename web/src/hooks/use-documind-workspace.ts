@@ -4,9 +4,12 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 import {
+  abortPendingDocuMindRequests,
   fetchDocumentSummaryRequest,
   fetchSystemStatus,
   indexDocumentsRequest,
+  isAbortError,
+  removeDocumentRequest,
   resetWorkspaceRequest,
   searchDocumentsRequest,
   sendChatQueryRequest,
@@ -43,6 +46,7 @@ export type WorkspaceActions = {
   searchDocuments: (query: string, topK: number) => Promise<void>;
   sendChatQuery: (query: string, topK: number) => Promise<void>;
   generateSummary: () => Promise<void>;
+  removeDocument: (documentId: string) => Promise<void>;
   resetSession: () => void;
   clearWorkspace: () => Promise<void>;
   isUploading: boolean;
@@ -50,6 +54,7 @@ export type WorkspaceActions = {
   isSearching: boolean;
   isChatting: boolean;
   isSummarizing: boolean;
+  isRemovingDocument: boolean;
   isResetting: boolean;
   systemStatus?: SystemStatusResponse;
   statusSummary: string;
@@ -172,13 +177,20 @@ export function useWorkspaceActions(): WorkspaceActions {
         confidenceScore: result.confidence_score
       });
       setSearchResults(result.retrieved_chunks);
+    },
+    onError: (error) => {
+      if (isAbortError(error)) {
+        return;
+      }
     }
   });
 
   const resetWorkspaceMutation = useMutation({
     mutationFn: resetWorkspaceRequest,
-    onSuccess: () => {
-      useWorkspaceStore.getState().clearWorkspace();
+    onError: (error) => {
+      if (isAbortError(error)) {
+        return;
+      }
     }
   });
 
@@ -192,6 +204,30 @@ export function useWorkspaceActions(): WorkspaceActions {
         retrievedChunks: result.retrieved_chunks,
         suggestedQuestions: result.suggested_questions
       });
+    },
+    onError: (error) => {
+      if (isAbortError(error)) {
+        return;
+      }
+    }
+  });
+
+  const removeDocumentMutation = useMutation({
+    mutationFn: removeDocumentRequest,
+    onSuccess: (result, documentId) => {
+      useWorkspaceStore.setState((state) => ({
+        sessionId: createSessionId(),
+        documents: state.documents.filter((document) => document.document_id !== documentId),
+        indexedChunkCount: result.total_chunks_indexed,
+        searchResults: [],
+        messages: [],
+        summary: null
+      }));
+    },
+    onError: (error) => {
+      if (isAbortError(error)) {
+        return;
+      }
     }
   });
 
@@ -220,17 +256,42 @@ export function useWorkspaceActions(): WorkspaceActions {
     generateSummary: async () => {
       await summaryMutation.mutateAsync();
     },
+    removeDocument: async (documentId) => {
+      abortPendingDocuMindRequests();
+      chatMutation.reset();
+      searchMutation.reset();
+      summaryMutation.reset();
+      await removeDocumentMutation.mutateAsync(documentId);
+    },
     resetSession: () => {
+      abortPendingDocuMindRequests();
+      chatMutation.reset();
+      searchMutation.reset();
+      summaryMutation.reset();
       resetSession(createSessionId());
     },
     clearWorkspace: async () => {
-      await resetWorkspaceMutation.mutateAsync();
+      abortPendingDocuMindRequests();
+      chatMutation.reset();
+      searchMutation.reset();
+      summaryMutation.reset();
+      indexMutation.reset();
+      uploadMutation.reset();
+      clearWorkspace();
+      try {
+        await resetWorkspaceMutation.mutateAsync();
+      } catch (error) {
+        if (!isAbortError(error)) {
+          throw error;
+        }
+      }
     },
     isUploading: uploadMutation.isPending,
     isIndexing: indexMutation.isPending,
     isSearching: searchMutation.isPending,
     isChatting: chatMutation.isPending,
     isSummarizing: summaryMutation.isPending,
+    isRemovingDocument: removeDocumentMutation.isPending,
     isResetting: resetWorkspaceMutation.isPending,
     systemStatus: systemStatusQuery.data,
     statusSummary
