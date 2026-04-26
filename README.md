@@ -1,63 +1,100 @@
 # DocuMind
 
-DocuMind is a local-first AI application for chatting with your documents using retrieval-augmented generation. Users can upload PDFs, DOCX files, and text files, build a vector index over extracted chunks, search relevant passages, and ask grounded questions that return citations and confidence signals.
+DocuMind is a local-first AI document intelligence application for uploading documents and asking grounded questions over their contents. It uses a Retrieval-Augmented Generation (RAG) pipeline to extract text, chunk documents, index embeddings, retrieve relevant evidence, and answer with citations instead of relying on open-ended model memory.
 
-The repository is structured like a small production SaaS codebase rather than a one-off demo. It includes a FastAPI backend, a Streamlit frontend, deterministic tests, structured logging, Docker packaging, and modular service boundaries for ingestion, chunking, embeddings, retrieval, and answer generation.
+The current product includes:
 
-## Why This Project Is Strong
+- a FastAPI backend for ingestion, indexing, retrieval, and chat
+- a polished Next.js frontend in `web/`
+- local generation through Ollama
+- sentence-transformers embeddings
+- FAISS vector search
+- multi-document upload and removal
+- grounded answers with fallback behavior
 
-- It solves a real document QA workflow end to end instead of stopping at isolated RAG components.
-- The system is grounded by design: retrieval, answer generation, citations, confidence, and fallback behavior are all implemented and tested together.
-- The codebase is modular enough to swap providers later without rewriting route handlers or UI flows.
-- The repo is demo-ready: Docker support, local setup, structured logging, deterministic tests, and a polished frontend are already in place.
+## What the product does
 
-## What DocuMind Does
+DocuMind lets a user:
 
-- Upload PDF, DOCX, and TXT documents
-- Extract and normalize document text
-- Chunk text with fixed or recursive strategies
-- Generate embeddings and index chunks with FAISS
-- Search indexed chunks with similarity retrieval
-- Answer questions only from retrieved context
-- Return citations with document metadata and chunk snippets
-- Maintain session-aware chat history in the frontend and backend
-- Expose a clean API plus a polished Streamlit interface
+- upload PDF, DOCX, and TXT files
+- automatically ingest and index them
+- search relevant chunks across one or more documents
+- ask grounded questions over the active document set
+- inspect citations for each answer
+- remove one document or clear the workspace entirely
 
-## Architecture Overview
+If the retrieved context is weak, the system returns a fallback response instead of hallucinating.
+
+## Current stack
+
+### Backend
+
+- Python
+- FastAPI
+- Pydantic
+- structlog
+
+### AI and retrieval
+
+- sentence-transformers for embeddings
+- Ollama for local generation
+- `qwen2.5:7b-instruct` as the default local model
+- FAISS for vector search
+- hybrid dense + lexical retrieval
+
+### Frontend
+
+- Next.js App Router
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+- Zustand
+- TanStack Query
+
+### Testing
+
+- pytest
+- Vitest
+
+## Architecture overview
 
 ```text
-Streamlit Frontend
-  - upload workflow
-  - indexing controls
-  - retrieval preview
-  - grounded chat UI
+Next.js Frontend (web/)
+  - landing page
+  - workspace UI
+  - upload flow
+  - grounded chat
+  - citations and document management
         |
         v
-FastAPI Backend
+FastAPI Backend (app/)
   - /documents/upload
   - /documents/index
   - /documents/search
+  - /documents/{document_id}
+  - /documents/reset
   - /chat/query
+  - /system/status
         |
         v
-Services
-  - ingestion: parse PDF/DOCX/TXT, normalize text, store metadata
-  - chunking: fixed and recursive chunk strategies
-  - embeddings: pluggable embedding providers
+Core Services
+  - ingestion: parse PDF/DOCX/TXT, normalize text, persist uploads
+  - chunking: fixed and recursive chunking strategies
+  - embeddings: pluggable embedding provider
   - vector store: FAISS-backed local index
-  - retrieval: search top-k relevant chunks
-  - generator: grounded extractive answer generation
-  - chat: session-aware orchestration and fallback behavior
+  - retrieval: dense + lexical ranking, optional reranking
+  - generation: grounded answer generation with fallback behavior
+  - chat: session-aware orchestration and confidence scoring
         |
         v
-Local Storage
-  - uploaded source files
+Local Runtime State
+  - uploaded files
   - FAISS index files
   - chunk metadata
-  - evaluation/log directories
+  - evaluation logs
 ```
 
-## Project Layout
+## Project layout
 
 ```text
 DocuMind/
@@ -67,10 +104,8 @@ DocuMind/
     services/
     models/
     utils/
-  frontend/
-    app.py
-    services/
-    utils/
+  web/
+    src/
   data/
   tests/
   .env.example
@@ -79,104 +114,151 @@ DocuMind/
   README.md
 ```
 
-## Setup
+## How it works
+
+1. The user uploads one or more documents from the web workspace.
+2. The backend extracts and normalizes text from PDF, DOCX, or TXT files.
+3. The text is chunked using the selected strategy and overlap settings.
+4. Chunk embeddings are generated and stored in a FAISS index.
+5. When the user asks a question, DocuMind retrieves the most relevant chunks.
+6. The answer layer responds only from retrieved context and returns citations.
+7. If context is insufficient, the system falls back instead of generating a weak answer.
+
+## Features
+
+- multi-format ingestion: PDF, DOCX, TXT
+- fixed and recursive chunking
+- local vector search with FAISS
+- grounded chat with citations
+- session-aware conversation flow
+- multi-document retrieval
+- per-document removal
+- clear workspace reset
+- local-first model execution with Ollama
+- structured logging and deterministic tests
+
+## Local setup
 
 ### Prerequisites
 
 - Python 3.11
-- `pip`
+- Node.js 18+ and npm
+- Ollama installed locally
 
-### 1. Install dependencies
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-Windows PowerShell:
+### 1. Install backend dependencies
 
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-### 2. Configure environment variables
+### 2. Create backend environment file
 
-```bash
-cp .env.example .env
+```powershell
+Copy-Item .env.example .env
 ```
 
-Defaults are sensible for local development. The app works without external APIs when `LLM_PROVIDER=extractive` and `EMBEDDING_PROVIDER=hash`. `sentence-transformers` is still supported, but it depends on a working local PyTorch stack.
+The default configuration is designed for local usage. The important defaults are:
 
-### 3. Run the backend
+- `LLM_PROVIDER=ollama`
+- `OLLAMA_MODEL=qwen2.5:7b-instruct`
+- `EMBEDDING_PROVIDER=sentence-transformers`
+- `VECTOR_STORE_PROVIDER=faiss`
+- `RERANKER_PROVIDER=none`
 
-```bash
-uvicorn app.main:app --reload
+### 3. Pull the local model
+
+```powershell
+ollama pull qwen2.5:7b-instruct
 ```
 
-The API will start on `http://127.0.0.1:8000` by default.
+### 4. Start the backend
 
-### 4. Run the frontend
-
-In a second terminal:
-
-```bash
-streamlit run frontend/app.py
+```powershell
+.\run_backend.ps1
 ```
 
-The Streamlit UI uses `DOCUMIND_API_URL` to find the backend. The default is `http://127.0.0.1:8000`.
+Or directly:
 
-## Docker
+```powershell
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
 
-The Docker image runs the FastAPI backend.
+The backend will be available at `http://127.0.0.1:8000`.
+
+### 5. Install frontend dependencies
+
+```powershell
+Set-Location web
+npm install
+```
+
+### 6. Create frontend environment file
+
+Create `web/.env.local` with:
+
+```text
+DOCUMIND_API_URL=http://127.0.0.1:8000
+```
+
+### 7. Start the frontend
+
+```powershell
+.\run_frontend.ps1
+```
+
+Or directly from `web/`:
+
+```powershell
+npm run dev
+```
+
+The frontend will be available at `http://127.0.0.1:3000`.
+
+## Running with Docker
+
+The provided Dockerfile packages the backend service.
 
 Build:
 
-```bash
+```powershell
 docker build -t documind .
 ```
 
 Run:
 
-```bash
+```powershell
 docker run --rm -p 8000:8000 --env-file .env documind
 ```
 
-Health check:
+The frontend remains a separate Next.js process in this repository.
 
-- `GET /api/v1/health`
+## Environment variables
 
-The frontend is still intended to run as a separate local process in this repository.
-
-## Environment Variables
-
-Key settings from `.env.example`:
+Important backend settings from `.env.example`:
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `APP_NAME` | API application name | `DocuMind` |
-| `APP_ENV` | Environment label | `development` |
-| `APP_HOST` | API host binding | `0.0.0.0` |
-| `APP_PORT` | API port | `8000` |
-| `LOG_LEVEL` | Logging verbosity | `INFO` |
-| `REQUEST_LOG_ENABLED` | Enable request logs | `true` |
-| `DOCUMIND_API_URL` | Frontend backend URL | `http://127.0.0.1:8000` |
-| `LLM_PROVIDER` | Answer generation provider | `extractive` |
-| `EMBEDDING_PROVIDER` | Embedding backend | `hash` |
-| `EMBEDDING_MODEL` | Sentence transformer model | `sentence-transformers/all-MiniLM-L6-v2` |
-| `VECTOR_STORE_PROVIDER` | Vector storage backend | `faiss` |
-| `DATA_DIR` | Root local data directory | `./data` |
-| `UPLOAD_DIR` | Uploaded file storage | `./data/uploads` |
-| `VECTOR_INDEX_DIR` | FAISS index storage | `./data/vector_index` |
-| `EVAL_LOG_PATH` | Evaluation log output path | `./data/logs/evaluations.jsonl` |
+| `APP_NAME` | Application name | `DocuMind` |
+| `APP_ENV` | Environment name | `development` |
+| `APP_HOST` | Backend host | `0.0.0.0` |
+| `APP_PORT` | Backend port | `8000` |
+| `LOG_LEVEL` | Logging level | `INFO` |
+| `DOCUMIND_API_URL` | Backend URL used by the frontend | `http://127.0.0.1:8000` |
+| `LLM_PROVIDER` | Generation provider | `ollama` |
+| `OLLAMA_BASE_URL` | Ollama server URL | `http://127.0.0.1:11434` |
+| `OLLAMA_MODEL` | Local generation model | `qwen2.5:7b-instruct` |
+| `EMBEDDING_PROVIDER` | Embedding provider | `sentence-transformers` |
+| `EMBEDDING_MODEL` | Embedding model | `sentence-transformers/all-MiniLM-L6-v2` |
+| `RERANKER_PROVIDER` | Reranker provider | `none` |
+| `VECTOR_STORE_PROVIDER` | Vector database backend | `faiss` |
 | `DEFAULT_TOP_K` | Default retrieval depth | `5` |
 | `DEFAULT_CHUNK_SIZE` | Default chunk size | `800` |
-| `DEFAULT_CHUNK_OVERLAP` | Default overlap | `120` |
-| `MINIMUM_GROUNDING_SCORE` | Minimum confidence gate for grounded answers | `0.2` |
+| `DEFAULT_CHUNK_OVERLAP` | Default chunk overlap | `120` |
+| `MINIMUM_GROUNDING_SCORE` | Fallback gating threshold | `0.2` |
 
-## API Overview
+## API overview
 
 ### Health and status
 
@@ -186,101 +268,93 @@ Key settings from `.env.example`:
 ### Documents
 
 - `POST /api/v1/documents/upload`
-  - multipart upload of one or more `.pdf`, `.docx`, `.txt` files
+  - upload one or more `.pdf`, `.docx`, or `.txt` files
 - `POST /api/v1/documents/index`
-  - builds the vector index for all or selected documents
+  - index all or selected documents
 - `POST /api/v1/documents/search`
-  - returns top-k matching chunks and metadata
+  - retrieve top-k matching chunks
+- `DELETE /api/v1/documents/{document_id}`
+  - remove one document and refresh the index
+- `POST /api/v1/documents/reset`
+  - clear all documents, index state, and sessions
 
 ### Chat
 
 - `POST /api/v1/chat/query`
   - accepts `session_id`, `user_query`, and optional `top_k`
-  - returns `answer`, `citations`, `confidence_score`, and retrieved chunk metadata
+  - returns answer, confidence score, citations, and retrieved chunk metadata
 
 ## Testing
 
-Run the full suite:
+### Backend
 
-```bash
+```powershell
 python -m pytest -q
 ```
 
-The tests cover:
+### Frontend
 
-- file extraction for PDF, DOCX, and TXT
+```powershell
+Set-Location web
+npm test
+```
+
+The test suite covers:
+
+- ingestion for PDF, DOCX, and TXT
 - chunking behavior
 - indexing and retrieval
-- grounded chat behavior and fallback handling
-- frontend API client and session helpers
-- end-to-end upload -> index -> search/chat integration flows
-
-Tests are deterministic and do not depend on external network calls.
+- grounded chat and fallback logic
+- upload and document removal routes
+- frontend API helper behavior
+- frontend file-selection behavior
 
 ## Logging
 
-DocuMind uses structured JSON logging via `structlog`.
+DocuMind uses structured logging on the backend and log files for local runs.
 
-Logged events include:
+Important runtime events include:
 
-- app startup and shutdown
-- HTTP request completion
-- document upload and ingestion completion
-- vector index creation
+- document uploads
+- indexing operations
 - retrieval queries
-- chat queries, confidence, and fallback behavior
+- chat requests
+- fallback responses
+- document removal
+- workspace resets
 
-This keeps local debugging practical without adding external observability infrastructure.
+## Design decisions
 
-## Design Decisions
+- Local-first by default so the product is easy to run and demo on one machine
+- Pluggable AI components so embeddings, LLM, and reranking can be swapped later
+- Grounding-first answer strategy instead of optimistic generation
+- Simplified workspace UX focused on user value rather than internal state
+- Conservative fallback behavior to reduce hallucinations
 
-- **Local-first execution:** the default stack works on a laptop without managed infrastructure.
-- **Pluggable service boundaries:** embeddings, retrieval, and answer generation are isolated behind service interfaces.
-- **Grounding-first answers:** chat responses are derived from retrieved context and fall back cleanly when evidence is weak.
-- **Deterministic tests:** the suite uses mocked or local providers to avoid live API dependencies.
-- **Streamlit for operator UX:** the frontend is optimized for local workflows and portfolio-quality presentation rather than multi-tenant deployment.
+## Current limitations
 
-## Limitations
+- summary generation was intentionally removed from the workspace because the local quality was not reliable enough
+- runtime state is primarily local and in-memory rather than multi-user persistent storage
+- removing one document triggers reindexing of the remaining document set
+- the backend Dockerfile does not package the Next.js frontend
 
-- The default answer generator is extractive rather than full generative synthesis.
-- Session memory is stored in process memory, not durable storage.
-- FAISS indexing is local-only and not designed for concurrent multi-user workloads.
-- The frontend assumes a separately running backend service.
-- Evaluation logging exists as local file output, not a full analytics pipeline.
+## Future improvements
 
-## Future Improvements
+- stronger summarization with better chunk selection and prompting
+- persistent multi-user storage
+- richer retrieval evaluation and benchmarking
+- improved reranking with a lighter local model
+- background indexing for larger uploads
 
-- Swap in OpenAI or another hosted LLM provider behind the existing generator interface
-- Add persistent conversation storage
-- Support background indexing jobs for large uploads
-- Add auth, quotas, and multi-user separation
-- Export retrieval and answer traces into a richer evaluation dashboard
+## Why this project is useful in a portfolio
 
-## Quick Start Command Sequence
+DocuMind is more than a toy RAG demo. It shows:
 
-Suggested demo flow:
+- full-stack product execution
+- backend API design
+- document ingestion and retrieval engineering
+- local AI model integration
+- production-minded fallback behavior
+- frontend product polish
+- testing and operational hardening
 
-1. Start the FastAPI backend.
-2. Start the Streamlit frontend.
-3. Upload two or three small documents.
-4. Build the index.
-5. Run a retrieval preview query.
-6. Ask a grounded question and expand the citations panel.
-
-Backend:
-
-```bash
-uvicorn app.main:app --reload
-```
-
-Frontend:
-
-```bash
-streamlit run frontend/app.py
-```
-
-Tests:
-
-```bash
-python -m pytest -q
-```
