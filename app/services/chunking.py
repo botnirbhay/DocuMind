@@ -1,6 +1,11 @@
+import re
 from enum import StrEnum
 
 from app.services.documents import DocumentChunk, DocumentSection
+
+HEADING_NUMBER_PATTERN = re.compile(r"^((section|chapter|appendix)\s+\w+|\d+(\.\d+)*[\)\.]?)\s+.+$", re.IGNORECASE)
+UPPERCASE_WORD_PATTERN = re.compile(r"[A-Z][A-Z0-9&/\-]+")
+BULLET_PATTERN = re.compile(r"^([-*•]|\d+[\.\)])\s+")
 
 
 class ChunkingStrategy(StrEnum):
@@ -34,7 +39,7 @@ def recursive_chunks(text: str, chunk_size: int, chunk_overlap: int) -> list[str
         return []
 
     _validate_chunk_options(chunk_size, chunk_overlap)
-    segments = _recursive_split(cleaned, chunk_size, separators=["\n\n", "\n", ". ", " "])
+    segments = _build_structural_segments(cleaned, chunk_size)
     merged = _merge_segments(segments, chunk_size)
     return _apply_overlap(merged, chunk_overlap)
 
@@ -87,6 +92,91 @@ def _validate_chunk_options(chunk_size: int, chunk_overlap: int) -> None:
         raise ValueError("chunk_overlap must be 0 or greater")
     if chunk_overlap >= chunk_size:
         raise ValueError("chunk_overlap must be smaller than chunk_size")
+
+
+def _build_structural_segments(text: str, chunk_size: int) -> list[str]:
+    blocks = [block.strip() for block in text.split("\n\n") if block.strip()]
+    if not blocks:
+        return []
+
+    segments: list[str] = []
+    pending_heading: str | None = None
+    bullet_buffer: list[str] = []
+
+    def flush_bullets() -> None:
+        nonlocal bullet_buffer, pending_heading
+        if not bullet_buffer:
+            return
+        combined = "\n\n".join(([pending_heading] if pending_heading else []) + bullet_buffer)
+        segments.extend(_split_segment(combined, chunk_size))
+        bullet_buffer = []
+        pending_heading = None
+
+    def flush_heading() -> None:
+        nonlocal pending_heading
+        if pending_heading:
+            segments.extend(_split_segment(pending_heading, chunk_size))
+            pending_heading = None
+
+    for block in blocks:
+        if _looks_like_heading(block):
+            flush_bullets()
+            flush_heading()
+            pending_heading = block
+            continue
+
+        if _looks_like_bullet(block):
+            bullet_buffer.append(block)
+            continue
+
+        if bullet_buffer:
+            flush_bullets()
+
+        combined = "\n\n".join(([pending_heading] if pending_heading else []) + [block])
+        segments.extend(_split_segment(combined, chunk_size))
+        pending_heading = None
+
+    flush_bullets()
+    flush_heading()
+    return [segment for segment in segments if segment.strip()]
+
+
+def _split_segment(text: str, chunk_size: int) -> list[str]:
+    if len(text) <= chunk_size:
+        return [text.strip()]
+    return _recursive_split(text, chunk_size, separators=["\n\n", "\n", ". ", " "])
+
+
+def _looks_like_heading(block: str) -> bool:
+    normalized = " ".join(block.split()).strip()
+    if not normalized or len(normalized) > 90:
+        return False
+    if "\n" in block:
+        return False
+    if normalized.endswith((".", "!", "?")):
+        return False
+    if normalized.endswith(":"):
+        return True
+    if HEADING_NUMBER_PATTERN.match(normalized):
+        return True
+
+    words = normalized.split()
+    if not 1 <= len(words) <= 10:
+        return False
+
+    uppercase_words = len(UPPERCASE_WORD_PATTERN.findall(normalized))
+    if uppercase_words >= max(1, len(words) - 1):
+        return True
+
+    title_like = sum(1 for word in words if word[:1].isupper())
+    return title_like >= max(1, len(words) - 1)
+
+
+def _looks_like_bullet(block: str) -> bool:
+    lines = [line.strip() for line in block.splitlines() if line.strip()]
+    if not lines:
+        return False
+    return all(BULLET_PATTERN.match(line) for line in lines)
 
 
 def _recursive_split(text: str, chunk_size: int, separators: list[str]) -> list[str]:

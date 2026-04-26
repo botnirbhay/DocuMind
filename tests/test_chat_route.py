@@ -87,6 +87,30 @@ def test_non_hallucination_behavior_in_low_context_case(client) -> None:
     payload = response.json()
     assert payload["answer"] == FALLBACK_RESPONSE
     assert payload["citations"] == []
+    assert payload["retrieved_chunks"] == []
+
+
+def test_summary_route_returns_document_aware_summary_and_questions(client) -> None:
+    _upload_and_index(
+        client,
+        "\n".join(
+            [
+                "Avery Stone",
+                "Senior Software Engineer",
+                "Skills: Python, FastAPI, React, AWS",
+                "Built document intelligence workflows for enterprise clients.",
+            ]
+        ).encode("utf-8"),
+        "resume.txt",
+    )
+
+    response = client.post("/api/v1/chat/summary", json={})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert "Senior Software Engineer" in payload["answer"]
+    assert payload["citations"]
+    assert payload["suggested_questions"][0] == "What are the candidate's strongest skills?"
 
 
 def _upload_and_index(client, content: bytes, filename: str) -> None:

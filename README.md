@@ -108,7 +108,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Defaults are sensible for local development. The app works without external APIs when `LLM_PROVIDER=extractive` and `EMBEDDING_PROVIDER=hash` or `sentence-transformers`.
+Defaults are sensible for local development. The app works without external APIs when `LLM_PROVIDER=extractive` and `EMBEDDING_PROVIDER=hash`. `sentence-transformers` is still supported, but it depends on a working local PyTorch stack.
 
 ### 3. Run the backend
 
@@ -164,7 +164,7 @@ Key settings from `.env.example`:
 | `REQUEST_LOG_ENABLED` | Enable request logs | `true` |
 | `DOCUMIND_API_URL` | Frontend backend URL | `http://127.0.0.1:8000` |
 | `LLM_PROVIDER` | Answer generation provider | `extractive` |
-| `EMBEDDING_PROVIDER` | Embedding backend | `sentence-transformers` |
+| `EMBEDDING_PROVIDER` | Embedding backend | `hash` |
 | `EMBEDDING_MODEL` | Sentence transformer model | `sentence-transformers/all-MiniLM-L6-v2` |
 | `VECTOR_STORE_PROVIDER` | Vector storage backend | `faiss` |
 | `DATA_DIR` | Root local data directory | `./data` |

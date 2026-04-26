@@ -14,7 +14,9 @@ def client(tmp_path, monkeypatch) -> Iterator[TestClient]:
     monkeypatch.setenv("UPLOAD_DIR", str(data_dir / "uploads"))
     monkeypatch.setenv("VECTOR_INDEX_DIR", str(data_dir / "vector_index"))
     monkeypatch.setenv("EVAL_LOG_PATH", str(data_dir / "logs" / "evaluations.jsonl"))
+    monkeypatch.setenv("LLM_PROVIDER", "extractive")
     monkeypatch.setenv("EMBEDDING_PROVIDER", "hash")
+    monkeypatch.setenv("RERANKER_PROVIDER", "none")
     get_settings.cache_clear()
 
     app = create_app()

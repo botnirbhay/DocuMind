@@ -1,0 +1,371 @@
+= DocuMind Product Summary and Interview Guide
+:toc:
+:toclevels: 2
+
+== Overview
+
+DocuMind is a full-stack AI document intelligence application that allows users to upload documents, index them, and ask grounded questions over their content. The product is built around a Retrieval-Augmented Generation, or RAG, pipeline so answers stay tied to the uploaded documents instead of relying on open-ended model memory.
+
+The system supports PDF, DOCX, and TXT files, extracts and normalizes their text, splits content into searchable chunks, generates embeddings, stores them in a vector index, and retrieves the most relevant chunks when a user asks a question. The answer layer uses only retrieved document context and returns structured citations so the user can verify where the answer came from.
+
+The goal of the product is not just to "chat with documents" in a demo sense, but to behave like a usable SaaS-style application with real product decisions around fallback behavior, grounded answers, multi-document support, local deployment, and UI polish.
+
+== Core Problem It Solves
+
+Many document Q&A tools fail in one of two ways:
+
+* they are difficult to use because they expose too much technical workflow to the user
+* they produce convincing but weakly grounded answers that are hard to verify
+
+DocuMind was built to address both issues. It provides a clean upload-to-question workflow while keeping the system retrieval-driven, citation-backed, and conservative when context is weak.
+
+== Main Features
+
+=== Document ingestion
+
+Users can upload one or more documents in PDF, DOCX, or TXT format. The backend validates file type, extracts text using format-specific parsers, normalizes whitespace, preserves useful metadata, and stores uploaded files locally.
+
+=== Chunking
+
+The ingestion pipeline supports configurable chunking strategies:
+
+* fixed-size chunking with overlap
+* recursive chunking that tries to preserve paragraph and section structure
+
+Chunk overlap helps retain context across boundaries, while recursive chunking improves semantic continuity for downstream retrieval.
+
+=== Embeddings and indexing
+
+Each chunk is embedded using a sentence-transformers model. Embeddings are stored in a FAISS index for efficient local similarity search. The design keeps the embedding provider and vector store abstract enough to swap later.
+
+=== Retrieval
+
+When the user asks a question, the system retrieves relevant chunks across all currently loaded documents. Retrieval uses hybrid ranking:
+
+* dense similarity from the embedding index
+* lexical scoring from token overlap
+* optional reranking layer
+
+The current local-first setup defaults to dense plus lexical retrieval and keeps heavier reranking optional for better local responsiveness.
+
+=== Grounded answer generation
+
+The answer generation layer takes retrieved chunks as context and produces a concise answer with citations. The generator is instructed to answer only from retrieved text. If context is weak or insufficient, the system returns a fallback instead of inventing an answer.
+
+=== Citations
+
+Each answer can include structured citations containing:
+
+* filename
+* document ID
+* page number when available
+* chunk index
+* snippet or preview text
+
+This makes the product useful in settings where verifiability matters more than creative generation.
+
+=== Multi-document support
+
+The workspace supports multiple uploaded documents at once. Users can upload several files, search across them, ask questions spanning more than one file, remove individual documents, or clear the workspace entirely.
+
+=== Session-aware chat
+
+The product maintains session-based chat history so follow-up questions can remain conversational. However, document grounding still takes precedence over memory. Session history helps retrieval for short follow-up prompts, but it is not treated as a source of truth.
+
+=== Fallback behavior
+
+One of the most important product decisions is conservative fallback. If retrieved context is weak, the answer returned is a fallback such as:
+
+`Sorry, I couldn't find that in the provided documents.`
+
+This reduces hallucination and keeps the tool honest.
+
+=== Local usability
+
+The product is designed to run locally with minimal friction. It supports Docker, `.env` configuration, local model serving through Ollama, and a polished web frontend connected to the FastAPI backend.
+
+== Technology Stack
+
+=== Backend
+
+* Python
+* FastAPI
+* Pydantic
+
+=== AI and retrieval
+
+* sentence-transformers for embeddings
+* Ollama for local LLM inference
+* qwen2.5:7b-instruct as the default local generation model
+* FAISS for vector indexing and similarity search
+
+=== Frontend
+
+* Next.js with App Router
+* TypeScript
+* Tailwind CSS
+* Framer Motion
+* Zustand for local workspace state
+* TanStack Query for async request state
+
+=== Testing and tooling
+
+* pytest for backend tests
+* Vitest for frontend utility tests
+* Docker for packaging and local run support
+* structured logging for backend observability
+
+== End-to-End Workflow
+
+=== 1. Upload
+
+The user uploads one or more files from the frontend workspace. The frontend sends a multipart request to the FastAPI backend.
+
+=== 2. Parse and normalize
+
+The backend:
+
+* validates the file type
+* extracts raw text
+* cleans repeated whitespace
+* preserves useful metadata such as filename, upload timestamp, page number, and document ID
+
+=== 3. Chunk
+
+The extracted text is divided into chunks using the configured chunking strategy. Each chunk carries metadata needed later for citations and retrieval output.
+
+=== 4. Embed and index
+
+Each chunk is embedded and stored in a FAISS index. This creates the searchable representation of the document set.
+
+=== 5. Retrieve
+
+When a question is asked, the system:
+
+* embeds the query
+* retrieves top matching chunks from the vector store
+* blends dense and lexical relevance
+* optionally reranks candidates
+
+=== 6. Decide whether context is sufficient
+
+Before generation, the system checks whether the retrieved context is strong enough to support an answer. This gating step is important because it decides whether to answer or to fall back.
+
+=== 7. Generate grounded answer
+
+If context is sufficient, the generator produces an answer from retrieved chunks only. If not, it returns the fallback response.
+
+=== 8. Return answer plus evidence
+
+The API response includes:
+
+* answer
+* confidence score
+* citations
+* retrieved chunk metadata
+* session ID
+
+=== 9. Render in frontend
+
+The frontend displays the answer in a polished chat interface and exposes citations so the user can inspect supporting evidence.
+
+== Architecture Summary
+
+At a high level, the system is organized into these layers:
+
+* ingestion layer for parsing and chunking documents
+* embedding and vector store layer for indexing
+* retrieval layer for chunk search and ranking
+* generation layer for grounded answer construction
+* API layer for document and chat endpoints
+* frontend application for the user experience
+
+This separation makes it easier to change one part of the system, such as the embedding model or vector store, without rewriting the entire application.
+
+== Key Engineering Decisions
+
+=== 1. Local-first LLM choice
+
+The product was configured to use Ollama and a local open model instead of relying on paid hosted inference. This makes the system cheaper to run and easier to demo locally.
+
+=== 2. Pluggable providers
+
+Embeddings, generation, and reranking are separated behind interfaces so the product can evolve from local-first to hosted providers later.
+
+=== 3. Conservative fallback over hallucination
+
+This is one of the strongest product choices. Instead of pretending to know the answer, the system falls back when retrieval quality is weak.
+
+=== 4. Hybrid retrieval instead of dense-only retrieval
+
+Dense embeddings are good, but lexical matching still matters for exact phrases, policy text, names, and structured document language. Using both improves practical relevance.
+
+=== 5. UI simplification based on user value
+
+Several internal-state-heavy UI elements were deliberately removed because they repeated information the end user did not need. The workspace was simplified to focus on upload, document management, and grounded chat.
+
+== Product Strengths
+
+* grounded answer flow with citations
+* multi-document search and Q&A
+* local inference support through Ollama
+* modular backend design
+* usable polished frontend rather than a basic prototype
+* strong fallback behavior for low-context questions
+* test coverage across backend and frontend helpers
+
+== Current Limitations
+
+* summary generation was removed from the workspace because local summary quality was not reliable enough
+* document-level deletion requires full reindexing of the remaining set
+* local model performance depends on machine resources
+* retrieval quality can still be improved with stronger reranking or domain-tuned embeddings
+* no persistent multi-user database yet, current runtime state is primarily local and in-memory
+
+== How To Explain This Project In An Interview
+
+You can explain it in four parts:
+
+=== Problem
+
+"I wanted to build a document intelligence product where answers are actually verifiable. A lot of AI document tools feel impressive in a demo but become unreliable because they hallucinate or don’t show where the answer came from."
+
+=== Solution
+
+"So I built DocuMind as a RAG-based system. Users upload files, the backend extracts and chunks text, creates embeddings, stores them in FAISS, retrieves relevant chunks at query time, and only then generates a grounded answer with citations."
+
+=== Key design choices
+
+"The important part was making it conservative. If retrieval is weak, the system falls back instead of guessing. I also kept embeddings, generation, and vector storage pluggable so the architecture is easy to extend."
+
+=== Outcome
+
+"The result is a full-stack product with a FastAPI backend, a polished Next.js frontend, local model support through Ollama, multi-document retrieval, per-document management, and test coverage across the main workflows."
+
+== Likely Interview Questions
+
+=== Product and architecture questions
+
+==== What is DocuMind?
+
+DocuMind is a full-stack AI document intelligence application that lets users upload documents and ask grounded questions over them using a RAG pipeline.
+
+==== Why did you build it as RAG instead of just prompting a model directly?
+
+Because the model should answer based on uploaded documents, not general model memory. RAG gives the model relevant context at query time and makes answers easier to verify.
+
+==== Why did you choose FastAPI?
+
+FastAPI provides strong request validation, clean route design, async support, and a good developer experience for building AI/data APIs.
+
+==== Why did you choose Next.js for the frontend?
+
+It gave me a strong foundation for a polished product-like UI, server-side proxy routes, TypeScript safety, and a cleaner app structure than a quick prototype framework.
+
+=== Retrieval questions
+
+==== How does retrieval work in your system?
+
+Uploaded documents are chunked and embedded. At query time, the query is embedded, similar chunks are pulled from FAISS, lexical relevance is blended in, and the top matches are used as answer context.
+
+==== Why use hybrid retrieval instead of only vector similarity?
+
+Dense similarity is strong for semantic matches, but lexical matching helps a lot with exact policies, names, dates, and structured document phrases. Hybrid retrieval improved practical search relevance.
+
+==== What is chunk overlap and why does it matter?
+
+Chunk overlap repeats some content across neighboring chunks so meaning is not lost when a relevant sentence falls on a chunk boundary.
+
+==== How do you decide if retrieved context is good enough?
+
+The system checks score and token overlap between the query and retrieved chunks. If the evidence is too weak, it returns a fallback instead of generating a weak answer.
+
+=== Model questions
+
+==== What model are you using?
+
+For generation, the local setup uses Ollama with `qwen2.5:7b-instruct`. For embeddings, it uses a sentence-transformers model.
+
+==== Why did you use Ollama?
+
+I wanted a local, free, demo-friendly setup that does not depend on paid API calls and can run without external inference infrastructure.
+
+==== Why not use the LLM for embeddings too?
+
+Embedding models and generation models solve different problems. Embedding models are optimized to place semantically similar text close in vector space, which is what retrieval needs.
+
+=== Reliability questions
+
+==== How do you reduce hallucinations?
+
+Three main ways:
+
+* retrieval-first design
+* strict grounded prompting
+* fallback response when context is insufficient
+
+==== How do citations work?
+
+Each returned citation maps to a retrieved chunk and includes metadata like filename, chunk index, and page number when available.
+
+==== What happens if the user asks something unrelated to the uploaded documents?
+
+The system should return the fallback response rather than loosely inventing an answer.
+
+=== Frontend and UX questions
+
+==== What frontend challenges did you solve?
+
+I moved the product away from a basic dashboard feel and built a cleaner SaaS-style workspace, simplified repeated UI, handled upload and request states, preserved session chat flow, and added per-document removal.
+
+==== How do you handle multiple documents?
+
+Users can upload multiple files, the backend indexes chunks across all active documents, and retrieval can return relevant chunks from any of them.
+
+=== Performance questions
+
+==== What were the main performance bottlenecks?
+
+The biggest practical bottlenecks were model warm-up and optional reranker loading. For local usability I made reranking optional by default and kept the system focused on fast enough local retrieval and answering.
+
+==== How would you improve retrieval performance further?
+
+I would evaluate better embedding models, add a lightweight reranker that is preloaded or cached, and consider incremental indexing strategies instead of full reindexing on some document operations.
+
+=== Testing questions
+
+==== How did you test the project?
+
+I added backend tests for ingestion, chunking, indexing, retrieval, chat routes, and document operations, and frontend tests for helper logic such as API handling and file selection behavior.
+
+=== Tradeoff questions
+
+==== Why did you remove summary from the UI?
+
+Because the local summary quality was not good enough. A weak summary damages trust more than not showing one. I preferred a smaller but more reliable product surface.
+
+==== What would you improve next?
+
+The next high-value improvements would be:
+
+* stronger summary generation with better chunk selection
+* better reranking
+* persistent storage for multi-user sessions
+* retrieval evaluation with benchmark datasets
+* richer document preview and citation navigation
+
+== Good Questions You Can Ask The Interviewer
+
+* How does your team evaluate retrieval quality in production RAG systems?
+* Do you optimize more for latency, cost, or factual grounding?
+* How do you decide when to fall back versus answer with partial confidence?
+* Do you use hybrid retrieval or reranking in your production search stack?
+* How do you think about observability for AI applications beyond standard API metrics?
+
+== Short Resume Talking Points
+
+* Built a full-stack RAG application for grounded question answering over uploaded documents
+* Implemented ingestion, chunking, embeddings, FAISS indexing, hybrid retrieval, and citation-backed answer generation
+* Designed a production-style Next.js frontend with multi-document management and local AI inference support through Ollama
+* Focused on reliability through fallback behavior, conservative answer gating, structured logging, and test coverage
+

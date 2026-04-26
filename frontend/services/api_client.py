@@ -21,10 +21,18 @@ class DocuMindApiClient:
     def __init__(self, base_url: str, timeout: float = 30.0, client: httpx.Client | None = None) -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
-        self._client = client or httpx.Client(base_url=self._base_url, timeout=self._timeout)
+        self._client = client or httpx.Client(
+            base_url=self._base_url,
+            timeout=self._timeout,
+            trust_env=False,
+        )
 
     def close(self) -> None:
         self._client.close()
+
+    @property
+    def base_url(self) -> str:
+        return self._base_url
 
     def get_system_status(self) -> dict[str, Any]:
         return self._request("GET", "/api/v1/system/status")
@@ -65,11 +73,13 @@ class DocuMindApiClient:
         try:
             response = self._client.request(method, path, **kwargs)
         except httpx.HTTPError as exc:
-            raise DocuMindApiError("DocuMind backend is unavailable. Verify the API is running.") from exc
+            raise DocuMindApiError(
+                f"DocuMind backend is unavailable at {self._base_url}. Verify the API is running."
+            ) from exc
 
         if response.is_error:
             detail = _extract_error_message(response)
-            raise DocuMindApiError(detail)
+            raise DocuMindApiError(f"{detail} Backend URL: {self._base_url}")
         return response.json()
 
 

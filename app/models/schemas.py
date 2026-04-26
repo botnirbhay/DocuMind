@@ -25,6 +25,23 @@ class PlaceholderResponse(BaseModel):
     detail: str
 
 
+class ResetWorkspaceResponse(BaseModel):
+    status: str
+    detail: str
+    documents_cleared: int
+    sessions_cleared: int
+    uploaded_files_removed: int
+
+
+class RemoveDocumentResponse(BaseModel):
+    status: str
+    detail: str
+    document_id: str
+    documents_remaining: int
+    total_chunks_indexed: int
+    sessions_cleared: int
+
+
 class UploadedDocumentResponse(BaseModel):
     document_id: str
     filename: str
@@ -100,3 +117,15 @@ class ChatQueryResponse(BaseModel):
     confidence_score: float
     citations: list[CitationResponse]
     retrieved_chunks: list[RetrievalMatchResponse]
+
+
+class DocumentSummaryRequest(BaseModel):
+    document_ids: list[str] | None = None
+
+
+class DocumentSummaryResponse(BaseModel):
+    answer: str
+    confidence_score: float
+    citations: list[CitationResponse]
+    retrieved_chunks: list[RetrievalMatchResponse]
+    suggested_questions: list[str]

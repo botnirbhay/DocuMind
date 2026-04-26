@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 
 import streamlit as st
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from frontend.services.api_client import DocuMindApiClient, DocuMindApiError, UploadPayload
 from frontend.utils.session import append_chat_turn, initialize_state, record_uploaded_documents, reset_conversation
@@ -20,6 +25,8 @@ st.set_page_config(
 initialize_state(st.session_state)
 if "backend_url_input" not in st.session_state:
     st.session_state["backend_url_input"] = os.getenv("DOCUMIND_API_URL", st.session_state["backend_url"])
+
+DEFAULT_BACKEND_URL = "http://127.0.0.1:8000"
 
 
 def main() -> None:
@@ -44,21 +51,23 @@ def main() -> None:
 def _render_sidebar(api_client: DocuMindApiClient, system_status: dict | None, backend_error: str | None) -> None:
     with st.sidebar:
         st.markdown("## DocuMind")
-        st.caption("Grounded answers from your document collection.")
+        st.caption("Upload files, build the index, then ask grounded questions.")
 
         st.text_input(
             "Backend URL",
             key="backend_url_input",
-            help="Point the frontend at your FastAPI backend.",
+            help="Defaults to the local FastAPI backend. Change this only if your API is running elsewhere.",
         )
+        st.caption(f"Current target: `{st.session_state['backend_url_input'].strip() or DEFAULT_BACKEND_URL}`")
 
         if backend_error:
-            st.error(backend_error, icon="!")
+            st.error(backend_error)
         elif system_status:
-            st.success(f"Connected to {system_status['app_name']}", icon="OK")
+            st.success(f"Connected to {system_status['app_name']}")
         else:
-            st.warning("Backend status is unavailable.", icon="!")
+            st.warning("Backend status is unavailable.")
 
+        st.divider()
         st.markdown("### Upload documents")
         uploaded_files = st.file_uploader(
             "Add PDFs, DOCX files, or TXT notes",
@@ -99,6 +108,7 @@ def _render_sidebar(api_client: DocuMindApiClient, system_status: dict | None, b
                     st.session_state["status_message"] = ("error", str(exc))
                     st.rerun()
 
+        st.divider()
         st.markdown("### Index documents")
         documents = st.session_state["uploaded_documents"]
         options = [doc["filename"] for doc in documents]
@@ -125,6 +135,7 @@ def _render_sidebar(api_client: DocuMindApiClient, system_status: dict | None, b
                 st.session_state["status_message"] = ("error", str(exc))
                 st.rerun()
 
+        st.divider()
         st.markdown("### Session")
         st.code(st.session_state["session_id"], language="text")
         session_metrics = st.columns(2)
@@ -135,6 +146,7 @@ def _render_sidebar(api_client: DocuMindApiClient, system_status: dict | None, b
             st.session_state["status_message"] = ("info", "Started a fresh session.")
             st.rerun()
 
+        st.divider()
         st.markdown("### Status")
         _render_status_badges(system_status)
 
@@ -143,9 +155,9 @@ def _render_main(api_client: DocuMindApiClient, system_status: dict | None, back
     st.markdown(
         """
         <div class="hero-card">
-          <div class="eyebrow">Grounded Document Intelligence</div>
+          <div class="eyebrow">Document QA</div>
           <h1>DocuMind</h1>
-          <p>Upload, index, search, and chat across your documents with traceable citations and visible grounding confidence.</p>
+          <p>Search and chat across your documents with citations, confidence signals, and clean source previews.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -157,17 +169,35 @@ def _render_main(api_client: DocuMindApiClient, system_status: dict | None, back
         st.info("Start the FastAPI backend, then refresh this page to begin.")
         return
 
-    summary_col, retrieval_col = st.columns([1.15, 1], gap="large")
-    with summary_col:
-        _render_document_summary()
+    _render_top_summary()
+
+    tab_chat, tab_search, tab_library = st.tabs(["Chat", "Search", "Library"])
+    with tab_chat:
         _render_chat_panel(api_client)
-    with retrieval_col:
+    with tab_search:
         _render_search_panel(api_client)
+    with tab_library:
+        _render_document_summary()
+        st.markdown("### Service status")
         _render_system_panel(system_status)
 
 
+def _render_top_summary() -> None:
+    documents = st.session_state["uploaded_documents"]
+    metrics = st.columns(4)
+    metrics[0].metric("Documents", len(documents))
+    metrics[1].metric("Chunks", sum(item["chunks_extracted"] for item in documents))
+    metrics[2].metric(
+        "Indexed",
+        st.session_state["last_index_result"]["total_chunks_indexed"]
+        if st.session_state["last_index_result"]
+        else 0,
+    )
+    metrics[3].metric("Chat turns", len(st.session_state["chat_history"]))
+
+
 def _render_document_summary() -> None:
-    st.markdown("### Library")
+    st.markdown("### Document library")
     documents = st.session_state["uploaded_documents"]
     if not documents:
         st.markdown(
@@ -180,21 +210,6 @@ def _render_document_summary() -> None:
             unsafe_allow_html=True,
         )
         return
-
-    active_session = "Ready" if st.session_state["chat_history"] else "Idle"
-    top_row = st.columns(3)
-    top_row[0].metric("Documents", len(documents))
-    top_row[1].metric("Chunks", sum(item["chunks_extracted"] for item in documents))
-    top_row[2].metric("Session", active_session)
-
-    lower_row = st.columns(2)
-    lower_row[0].metric(
-        "Indexed chunks",
-        st.session_state["last_index_result"]["total_chunks_indexed"]
-        if st.session_state["last_index_result"]
-        else 0,
-    )
-    lower_row[1].metric("Chat turns", len(st.session_state["chat_history"]))
 
     for document in documents:
         with st.container(border=True):
@@ -210,8 +225,8 @@ def _render_document_summary() -> None:
 
 def _render_chat_panel(api_client: DocuMindApiClient) -> None:
     st.markdown("### Chat with your documents")
-    st.caption("Ask grounded questions. Responses cite the exact document chunks used.")
-    top_k = st.slider("Chat retrieval depth", min_value=1, max_value=8, value=4, key="chat_top_k")
+    st.caption("Ask direct questions. Answers stay grounded in retrieved chunks.")
+    top_k = st.slider("Retrieval depth", min_value=1, max_value=8, value=4, key="chat_top_k")
 
     for turn in st.session_state["chat_history"]:
         with st.chat_message("user"):
@@ -245,7 +260,7 @@ def _render_chat_panel(api_client: DocuMindApiClient) -> None:
 
 def _render_search_panel(api_client: DocuMindApiClient) -> None:
     st.markdown("### Retrieval preview")
-    st.caption("Inspect chunk matches before or alongside chat.")
+    st.caption("Use this to inspect the raw chunk matches before asking chat questions.")
     with st.form("search-form", clear_on_submit=False):
         query = st.text_input("Search query", placeholder="Find claim deadlines, product dates, policy rules...")
         top_k = st.slider("Top-k matches", min_value=1, max_value=10, value=5, key="search_top_k")
@@ -284,7 +299,6 @@ def _render_search_panel(api_client: DocuMindApiClient) -> None:
 
 
 def _render_system_panel(system_status: dict | None) -> None:
-    st.markdown("### App status")
     if not system_status:
         st.warning("System status is unavailable.")
         return
@@ -388,7 +402,7 @@ def _confidence_chip(score: float) -> str:
 
 
 def _sync_backend_url() -> str:
-    st.session_state["backend_url"] = st.session_state["backend_url_input"].strip() or "http://127.0.0.1:8000"
+    st.session_state["backend_url"] = st.session_state["backend_url_input"].strip() or DEFAULT_BACKEND_URL
     return st.session_state["backend_url"]
 
 
@@ -397,80 +411,112 @@ def _inject_styles() -> None:
         """
         <style>
           .stApp {
-            background:
-              radial-gradient(circle at top left, rgba(25, 93, 255, 0.12), transparent 28%),
-              radial-gradient(circle at top right, rgba(4, 190, 153, 0.12), transparent 30%),
-              linear-gradient(180deg, #f6f8fb 0%, #eef3f8 100%);
+            background: #f4f6f8;
+            color: #16202a;
+          }
+          .stApp, .stMarkdown, .stCaption, .stText, label, p, div {
+            color: #16202a;
+          }
+          section[data-testid="stSidebar"] {
+            background: #ffffff;
+            border-right: 1px solid #d7dde5;
           }
           .hero-card, .answer-card, .empty-card {
-            background: rgba(255, 255, 255, 0.88);
-            border: 1px solid rgba(15, 23, 42, 0.08);
-            border-radius: 20px;
-            padding: 1.4rem 1.5rem;
-            box-shadow: 0 14px 40px rgba(15, 23, 42, 0.07);
+            background: #ffffff;
+            border: 1px solid #d7dde5;
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
           }
           .hero-card h1 {
-            margin: 0.2rem 0 0.4rem 0;
-            font-size: 2.4rem;
-            color: #10233f;
+            margin: 0.1rem 0 0.35rem 0;
+            font-size: 1.8rem;
+            color: #0f1720;
           }
           .hero-card p, .empty-card p, .answer-body {
-            color: #30445f;
-            line-height: 1.55;
+            color: #324152;
+            line-height: 1.5;
+            font-size: 0.98rem;
           }
           .eyebrow {
             text-transform: uppercase;
-            font-size: 0.76rem;
-            letter-spacing: 0.14em;
-            color: #1463ff;
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            color: #385a7a;
             font-weight: 700;
           }
           .doc-badge, .stacked-badge, .match-chip, .grounding-chip {
             display: inline-block;
             border-radius: 999px;
-            padding: 0.35rem 0.75rem;
-            font-size: 0.8rem;
+            padding: 0.28rem 0.65rem;
+            font-size: 0.76rem;
             font-weight: 600;
           }
           .doc-badge, .stacked-badge {
-            color: #134168;
-            background: rgba(19, 65, 104, 0.08);
+            color: #264561;
+            background: #edf3f8;
           }
           .match-chip {
-            color: #0b5a4a;
-            background: rgba(4, 190, 153, 0.14);
+            color: #0f4b40;
+            background: #e8f6f2;
             text-align: right;
           }
           .grounding-chip {
-            color: #0f4f8b;
-            background: rgba(20, 99, 255, 0.12);
+            color: #184d78;
+            background: #ebf4fb;
           }
           .answer-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 1rem;
-            margin-bottom: 0.8rem;
+            margin-bottom: 0.7rem;
           }
           .confidence-text {
-            color: #46617e;
-            font-size: 0.84rem;
+            color: #41566c;
+            font-size: 0.82rem;
             font-weight: 600;
           }
           .status-row {
             display: flex;
             justify-content: space-between;
-            background: rgba(255,255,255,0.75);
-            border: 1px solid rgba(15,23,42,0.08);
-            border-radius: 14px;
-            padding: 0.7rem 0.85rem;
+            background: #ffffff;
+            border: 1px solid #d7dde5;
+            border-radius: 12px;
+            padding: 0.65rem 0.8rem;
             margin-bottom: 0.5rem;
             color: #17314d;
-            font-size: 0.92rem;
+            font-size: 0.88rem;
+          }
+          .stTabs [data-baseweb="tab-list"] {
+            gap: 0.5rem;
+          }
+          .stTabs [data-baseweb="tab"] {
+            background: #ffffff;
+            border: 1px solid #d7dde5;
+            border-radius: 999px;
+            padding: 0.35rem 0.9rem;
+            color: #21384d;
+          }
+          .stTabs [aria-selected="true"] {
+            background: #eaf1f7 !important;
+            border-color: #aac2d6 !important;
+          }
+          div[data-testid="metric-container"] {
+            background: #ffffff;
+            border: 1px solid #d7dde5;
+            padding: 0.85rem 0.95rem;
+            border-radius: 12px;
+          }
+          div[data-testid="metric-container"] label {
+            color: #516578 !important;
+          }
+          div[data-testid="stChatMessage"] {
+            background: transparent;
           }
           @media (max-width: 900px) {
             .hero-card h1 {
-              font-size: 1.9rem;
+              font-size: 1.55rem;
             }
             .answer-meta {
               flex-direction: column;
