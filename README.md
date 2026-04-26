@@ -346,15 +346,4 @@ Important runtime events include:
 - improved reranking with a lighter local model
 - background indexing for larger uploads
 
-## Why this project is useful in a portfolio
-
-DocuMind is more than a toy RAG demo. It shows:
-
-- full-stack product execution
-- backend API design
-- document ingestion and retrieval engineering
-- local AI model integration
-- production-minded fallback behavior
-- frontend product polish
-- testing and operational hardening
 
